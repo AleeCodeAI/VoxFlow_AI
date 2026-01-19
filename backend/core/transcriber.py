@@ -10,7 +10,6 @@ import whisper
 from pydub import AudioSegment
 from pydantic import BaseModel, Field
 
-# Assuming your custom Logger is in a file named color.py
 from color import Logger
 
 logging.basicConfig(

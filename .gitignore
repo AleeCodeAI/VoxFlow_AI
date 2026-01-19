@@ -274,6 +274,3 @@ keys/
 *.zip
 *.tar.gz
 *.rar
-
-# Screenshots (if not wanted)
-screenshots_of_projects/

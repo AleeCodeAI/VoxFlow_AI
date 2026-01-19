@@ -1,5 +1,5 @@
 [project]
-name = "processor"
+name = "audio-processor"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -11,6 +11,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "fastapi>=0.128.0",
     "huggingface-hub>=0.36.0",
+    "langfuse>=2.0.0,<3.0.0",
     "markdown>=3.10",
     "openai>=2.15.0",
     "openai-whisper>=20250625",
