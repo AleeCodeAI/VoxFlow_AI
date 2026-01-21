@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from core.color import Logger
 from core.prompts import SYSTEM_PROMPT, USER_PROMPT_NO_CONTEXT, USER_PROMPT_WITH_CONTEXT
 from langfuse.decorators import observe, langfuse_context
+from langfuse import Langfuse
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,14 +22,14 @@ gpt = os.getenv("GPT_MODEL")
 deepseek = os.getenv("DEEPSEEK_MODEL")
 
 class PreprocessedResult(BaseModel):
-    """The final object structure for the database and UI."""
+    """Database model for storing preprocessed transcription results."""
     id: str = Field(description="Matches the original transcription ID")
     name: str = Field(description="Original audio filename")
     preprocessed_transcription: str = Field(description="The cleaned text produced by LLM")
     timestamp: str = Field(description="Time of preprocessing")
 
 class LLMParsedResponse(BaseModel):
-    """Temporary model to force OpenAI to return a specific JSON key."""
+    """Response schema for structured output from LLM."""
     preprocessed_transcription: str = Field(description="The cleaned text")
 
 class Preprocessor(Logger):
@@ -36,36 +37,39 @@ class Preprocessor(Logger):
     color = Logger.GREEN 
 
     def __init__(self):
+        """
+        Initialize the Preprocessor with OpenAI client, Langfuse observability, and prompts.
+        Sets up connection to OpenRouter API and Langfuse for tracking.
+        """
         self.client = OpenAI(api_key=api_key, base_url=url)
+        self.langfuse = Langfuse(
+            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+            host=os.getenv("LANGFUSE_HOST")
+        )
         self.model = gpt 
         self.system_prompt = SYSTEM_PROMPT
         self.user_prompt_with_context = USER_PROMPT_WITH_CONTEXT
         self.user_prompt_no_context = USER_PROMPT_NO_CONTEXT
         self.log("Initialized Preprocessor")
 
-    @observe(
-        name="save-preprocessed",
-        as_type="span",
-        capture_input=True,
-        capture_output=True
-    )
+    @observe(name="save-preprocessed", as_type="span")
     def save_preprocessed(self, session_id, audio_name, clean_text):
-        """Appends the clean result to preprocessings.jsonl."""
+        """
+        Save the preprocessed transcription to JSONL database.
+        
+        Args:
+            session_id: Unique identifier matching the original transcription
+            audio_name: Original audio filename
+            clean_text: The LLM-cleaned transcription text
+            
+        Returns:
+            PreprocessedResult: The saved result object with metadata
+        """
         db_path = r"D:\Projects\audio_preprocessor\backend\databases"
         jsonl_file = os.path.join(db_path, "preprocessings.jsonl")
-        
-        langfuse_context.update_current_observation(
-            metadata={
-                "database_path": jsonl_file,
-                "session_id": session_id,
-                "audio_name": audio_name,
-                "text_length": len(clean_text)
-            }
-        )
-        
         os.makedirs(db_path, exist_ok=True)
         
-        # Create the result object using the SAME ID and Name from Transcriber
         result_obj = PreprocessedResult(
             id=session_id,
             name=audio_name,
@@ -73,7 +77,6 @@ class Preprocessor(Logger):
             timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         )
         
-        # Append logic with flush to ensure data is written immediately
         with open(jsonl_file, 'a', encoding='utf-8') as f:
             f.write(result_obj.model_dump_json() + '\n')
             f.flush()
@@ -82,14 +85,18 @@ class Preprocessor(Logger):
         self.log(f"Cleaned text for {audio_name} saved to {jsonl_file}")
         return result_obj
 
-    @observe(
-        name="make-messages",
-        as_type="span",
-        capture_input=True,
-        capture_output=True
-    )
+    @observe(name="make-messages", as_type="span")
     def make_messages(self, previous_chunk, current_chunk):
-        """Create messages with context from previous chunk."""
+        """
+        Construct the messages array for LLM with appropriate context.
+        
+        Args:
+            previous_chunk: Previously cleaned text for context (empty string if first chunk)
+            current_chunk: Current text chunk to be cleaned
+            
+        Returns:
+            list: Messages array with system and user prompts
+        """
         if previous_chunk:
             user_content = self.user_prompt_with_context.format(
                 previous_chunk=previous_chunk,
@@ -100,27 +107,23 @@ class Preprocessor(Logger):
                 current_chunk=current_chunk
             )
         
-        langfuse_context.update_current_observation(
-            metadata={
-                "has_context": bool(previous_chunk),
-                "current_chunk_length": len(current_chunk),
-                "previous_chunk_length": len(previous_chunk) if previous_chunk else 0
-            }
-        )
-        
         return [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": user_content}
         ]
 
-    @observe(
-        name="chunk-transcription",
-        as_type="span",
-        capture_input=False,
-        capture_output=False
-    )
+    @observe(name="chunk-transcription", as_type="span")
     def chunk_transcription(self, transcription, chunk_size):
-        """Split transcription into chunks at sentence boundaries."""
+        """
+        Split long transcription into smaller chunks at sentence boundaries.
+        
+        Args:
+            transcription: Full transcription text to be chunked
+            chunk_size: Maximum character count per chunk
+            
+        Returns:
+            list: List of text chunks split at sentence boundaries
+        """
         words = transcription.split()
         chunks = []
         current_chunk = []
@@ -138,35 +141,88 @@ class Preprocessor(Logger):
         if current_chunk:
             chunks.append(' '.join(current_chunk))
         
-        langfuse_context.update_current_observation(
-            input={
-                "transcription_length": len(transcription),
-                "chunk_size": chunk_size
-            },
-            output={
-                "num_chunks": len(chunks)
-            },
-            metadata={
-                "total_words": len(words),
-                "chunks_created": len(chunks),
-                "avg_chunk_size": len(transcription) // len(chunks) if chunks else 0
-            }
-        )
-        
         self.log(f"Split transcription into {len(chunks)} chunks")
         return chunks
 
-    @observe(
-        name="preprocess",
-        as_type="span",
-        capture_input=True,
-        capture_output=True
-    )
+    @observe(name="call-llm-engine", as_type="generation")
+    def call_llm(self, messages, chunk_idx=None):
+        """
+        Call the LLM to clean transcription text with structured output parsing.
+        Enriches Langfuse generation with token usage and cost data from OpenRouter.
+        
+        Args:
+            messages: Array of message objects for the LLM
+            chunk_idx: Optional chunk number for tracking in metadata
+            
+        Returns:
+            str: The cleaned transcription text
+        """
+        langfuse_context.update_current_observation(
+            model=self.model,
+            input=messages
+        )
+        
+        response = self.client.chat.completions.parse(
+            model=self.model,
+            messages=messages,
+            response_format=LLMParsedResponse
+        )
+        
+        parsed_obj = getattr(response.choices[0].message, 'parsed', None)
+        
+        if parsed_obj is not None:
+            content = parsed_obj.preprocessed_transcription
+        else:
+            self.log("Structured parsing failed. Falling back to raw content.")
+            content = response.choices[0].message.content
+        
+        if response.usage:
+            input_cost = float(response.usage.cost_details.get('upstream_inference_prompt_cost', 0.0))
+            output_cost = float(response.usage.cost_details.get('upstream_inference_completions_cost', 0.0))
+            total_cost = float(response.usage.cost)
+            upstream_inference_cost = float(response.usage.cost_details.get('upstream_inference_cost', 0.0))
+            
+            cached_tokens = response.usage.prompt_tokens_details.cached_tokens
+            reasoning_tokens = response.usage.completion_tokens_details.reasoning_tokens
+            
+            langfuse_context.update_current_observation(
+                output=content,
+                usage={
+                    "input": response.usage.prompt_tokens,
+                    "output": response.usage.completion_tokens,
+                    "total": response.usage.total_tokens,
+                    "unit": "TOKENS",
+                    "input_cost": input_cost,
+                    "output_cost": output_cost
+                },
+                metadata={
+                    "chunk_index": chunk_idx,
+                    "total_cost": total_cost,
+                    "upstream_inference_cost": upstream_inference_cost,
+                    "cached_tokens": cached_tokens,
+                    "reasoning_tokens": reasoning_tokens,
+                    "is_byok": response.usage.is_byok
+                }
+            )
+            
+            self.log(f"Tokens: {response.usage.total_tokens} | Cost: ${total_cost:.8f}")
+        
+        return content
+
+    @observe(name="audio-preprocessing")
     def preprocess(self, input_data, chunk_size=2000):
         """
-        Main entry point with bulletproof parsing and fallbacks.
+        Main preprocessing workflow that cleans raw transcription text using LLM.
+        Automatically chunks long texts and maintains context between chunks.
+        Creates a Langfuse trace with session tracking and scores the result.
+        
+        Args:
+            input_data: Dict or object containing transcription, id, and name
+            chunk_size: Maximum characters per chunk (default 2000)
+            
+        Returns:
+            PreprocessedResult: The final cleaned result saved to database
         """
-        # 1. Extract data from the input package
         if isinstance(input_data, dict):
             raw_text = input_data.get("transcription", "")
             session_id = input_data.get("id", "")
@@ -177,7 +233,6 @@ class Preprocessor(Logger):
             audio_name = input_data.name
 
         langfuse_context.update_current_trace(
-            name="audio-preprocessing",
             session_id=session_id,
             tags=["preprocessing", "audio"],
             metadata={
@@ -189,99 +244,29 @@ class Preprocessor(Logger):
 
         self.log(f"Starting preprocessing for ID: {session_id}")
         
-        # 2. Decide between Single-Pass or Chunked Processing
         if len(raw_text) <= chunk_size:
             self.log("Processing in single pass...")
-            
-            langfuse_context.update_current_observation(
-                metadata={"processing_mode": "single_pass"}
-            )
-            
-            messages = self.make_messages("", raw_text)
-            
-            response = self.client.chat.completions.parse(
-                model=self.model,
-                messages=messages,
-                response_format=LLMParsedResponse
-            )
-            
-            # Log LLM call details
-            langfuse_context.update_current_observation(
-                metadata={
-                    "llm_call": {
-                        "model": self.model,
-                        "prompt_tokens": response.usage.prompt_tokens,
-                        "completion_tokens": response.usage.completion_tokens,
-                        "total_tokens": response.usage.total_tokens,
-                        "finish_reason": response.choices[0].finish_reason
-                    }
-                }
-            )
-            
-            # --- SAFETY CHECK ---
-            # We check if 'parsed' exists. If not, we use 'content' as a fallback string.
-            parsed_obj = getattr(response.choices[0].message, 'parsed', None)
-            
-            if parsed_obj is not None:
-                final_combined_text = parsed_obj.preprocessed_transcription
-            else:
-                self.log("⚠️ Structured parsing failed. Falling back to raw content.")
-                # If .parsed is None, the model likely returned a plain string or malformed JSON
-                final_combined_text = response.choices[0].message.content
-        
+            final_combined_text = self.call_llm(self.make_messages("", raw_text))
         else:
-            langfuse_context.update_current_observation(
-                metadata={"processing_mode": "chunked"}
-            )
-            
             chunks = self.chunk_transcription(raw_text, chunk_size)
             preprocessed_chunks = []
             previous_preprocessed = ""
             
             for idx, chunk in enumerate(chunks):
                 self.log(f"Processing chunk {idx + 1}/{len(chunks)}")
-                messages = self.make_messages(previous_preprocessed, chunk)
-                
-                response = self.client.chat.completions.parse(
-                    model=self.model,
-                    messages=messages,
-                    response_format=LLMParsedResponse
+                current_clean = self.call_llm(
+                    self.make_messages(previous_preprocessed, chunk),
+                    chunk_idx=idx + 1
                 )
-                
-                # Log each chunk's LLM call
-                langfuse_context.update_current_observation(
-                    metadata={
-                        f"llm_call_chunk_{idx+1}": {
-                            "model": self.model,
-                            "prompt_tokens": response.usage.prompt_tokens,
-                            "completion_tokens": response.usage.completion_tokens,
-                            "total_tokens": response.usage.total_tokens,
-                            "chunk_index": idx + 1,
-                            "total_chunks": len(chunks),
-                            "finish_reason": response.choices[0].finish_reason
-                        }
-                    }
-                )
-                
-                # --- SAFETY CHECK FOR CHUNKS ---
-                parsed_obj = getattr(response.choices[0].message, 'parsed', None)
-                
-                if parsed_obj is not None:
-                    current_clean = parsed_obj.preprocessed_transcription
-                else:
-                    self.log(f"⚠️ Chunk {idx+1} parsing failed. Using raw content.")
-                    current_clean = response.choices[0].message.content
-                
                 preprocessed_chunks.append(current_clean)
-                previous_preprocessed = current_clean # Context for next chunk
+                previous_preprocessed = current_clean
             
             final_combined_text = " ".join(preprocessed_chunks)
 
-        # 3. Save to database and return the final object
         result = self.save_preprocessed(session_id, audio_name, final_combined_text)
         
-        # Score the trace
-        langfuse_context.score_current_trace(
+        self.langfuse.score(
+            trace_id=langfuse_context.get_current_trace_id(),
             name="preprocessing-success",
             value=1,
             comment="Successfully completed preprocessing"
@@ -290,18 +275,8 @@ class Preprocessor(Logger):
         return result
 
 if __name__ == "__main__":
-    from langfuse import Langfuse 
-    
-    # Initialize the client explicitly to test connection
-    lf_client = Langfuse(
-        secret_key=os.getenv("LANGFUSE_SECRET_KEY", "sk-lf-399758b5-e6f8-4107-9d57-e1c222b2fdf1"),
-        public_key=os.getenv("LANGFUSE_PUBLIC_KEY", "pk-lf-0cadfda3-cc6e-46d2-a4d4-689c2ebdf3a6"),
-        host=os.getenv("LANGFUSE_HOST", "http://localhost:3000")
-    )
-    
     preprocessor = Preprocessor()
     
-    # This matches the structure of your transcriptions.jsonl line
     test_input = {
         "id": "d1f66d9b-414d-4b37-832d-6c494c0b8c53",
         "name": "test2.mp3",
@@ -323,7 +298,6 @@ Also, um, in terms of the interface, I was thinking that the user could either u
     print("FINAL PREPROCESSED OBJECT")
     print("="*40)
     print(final_result.model_dump_json(indent=4))
-
-    # Correct way to flush in newer SDK versions
-    lf_client.flush()
-    print("Langfuse traces flushed.")
+    
+    preprocessor.langfuse.flush()
+    print("\nLangfuse traces flushed.")

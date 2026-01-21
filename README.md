@@ -8,7 +8,7 @@
 [![OpenAI Whisper](https://img.shields.io/badge/OpenAI_Whisper-20250625-orange.svg)](https://github.com/openai/whisper)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A powerful, AI-driven audio processing application that transcribes audio files, preprocesses transcriptions using advanced language models, and provides additional tools for text manipulation, translation, and communication. Built with a modern web frontend and a robust Python backend.
+A powerful, AI-driven audio processing application that transcribes audio files, preprocesses transcriptions using advanced language models, and provides additional tools for text manipulation, translation, and communication. This project stands out due to its comprehensive AI engineering approach, featuring a robust FastAPI backend, a modern React frontend, and integrated Langfuse observability, showcasing diverse and complete AI engineering skillsets. Built with a modern web frontend and a robust Python backend.
 
 ## Why This Project Exists
 
@@ -77,6 +77,26 @@ Check out the live demo video to see VoxFlow AI in action:
 
 ### Integration Tools
 - **n8n**: Workflow automation platform used for email sending. I leveraged n8n with custom code to simplify the email functionality, allowing easy integration with various email providers. Users can create their own n8n workflows and connect them via webhooks - there are plenty of YouTube tutorials on setting up n8n workflows for email automation.
+- **Langfuse**: Open-source LLM observability platform for monitoring and debugging AI components, tracking model calls, performance, and costs.
+
+## Langfuse Integration for Observability
+
+To ensure robust monitoring and debugging capabilities for the AI components, I integrated Langfuse, an open-source LLM observability platform, with the transcriber and preprocessor modules. This integration allows tracking of model calls, performance metrics, costs, and potential issues in real-time.
+
+### How It Works
+- **Transcriber Integration**: Each audio transcription request is traced, capturing input audio metadata, model used (Whisper), processing time, and output text quality.
+- **Preprocessor Integration**: LLM preprocessing steps (using GPT or DeepSeek models) are monitored, including prompt inputs, model responses, token usage, and any errors encountered.
+- **Data Persistence**: Traces are stored in Langfuse for analysis, enabling insights into usage patterns and optimization opportunities.
+
+### Why Observability Matters for AI Applications
+Observability is crucial for AI applications because it provides visibility into the "black box" nature of LLMs and AI models. Key benefits include:
+- **Performance Monitoring**: Track response times, success rates, and resource usage to identify bottlenecks.
+- **Cost Tracking**: Monitor API costs from providers like OpenAI and DeepSeek to optimize spending.
+- **Debugging**: Quickly identify and resolve issues with model outputs or integration failures.
+- **Reliability**: Ensure consistent performance in production environments through proactive monitoring.
+- **Continuous Improvement**: Analyze usage data to refine prompts, select better models, and enhance user experience.
+
+This integration demonstrates a production-ready approach to AI engineering, making the application not just functional but also maintainable and scalable.
 
 ## Architecture
 
@@ -156,9 +176,14 @@ audio_preprocessor/
    OPENROUTER_URL=https://openrouter.ai/api/v1
    GPT_MODEL=gpt-4  # or your preferred model
    DEEPSEEK_MODEL=deepseek-chat
+   LANGFUSE_SECRET_KEY="sk-your-key"
+   LANGFUSE_PUBLIC_KEY="pk-your-key"
+   LANGFUSE_HOST="localhost endpoint"  # For self-hosted Langfuse; for cloud deployments, use LANGFUSE_BASE_URL instead, e.g., https://cloud.langfuse.com
    ```
 
    **Note:** For the email functionality, you'll need to set up your own n8n workflow. The code in `backend/tools/email_sender.py` uses a hardcoded webhook URL that only works for my setup. Update the `self.url` in the `EmailSender` class to point to your own n8n webhook. There are many YouTube tutorials on creating n8n workflows for email automation.
+
+   **Langfuse Configuration:** If using Langfuse Cloud (hosted service), replace `LANGFUSE_HOST` with `LANGFUSE_BASE_URL` and set it to the appropriate cloud URL (e.g., `https://cloud.langfuse.com` for EU or `https://us.cloud.langfuse.com` for US). Self-hosted deployments require `LANGFUSE_HOST` pointing to your local or custom endpoint.
 
 5. **Run the backend:**
    ```bash
