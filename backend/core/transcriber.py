@@ -24,6 +24,9 @@ load_dotenv(override=True)
 
 MODEL = "small"
 
+class TranscriptionError(Exception):
+    pass
+
 class Transcription(BaseModel):
     """Database model for storing audio transcription results."""
     id: str = Field(description="Unique identifier for the transcription")
@@ -69,15 +72,20 @@ class Transcriber(Logger):
         idx, chunk_file = chunk_data
         self.log(f"Transcribing chunk {idx + 1}")
         
-        try:
-            with self.lock:
-                result = self.whisper.transcribe(chunk_file, fp16=False)
-            
-            transcription_text = result["text"]
-            return idx, transcription_text
-        except Exception as e:
-            self.log(f"Error in chunk {idx + 1}: {str(e)}")
-            return idx, "[Error transcribing this section]"
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                with self.lock:
+                    result = self.whisper.transcribe(chunk_file, fp16=False)
+                
+                transcription_text = result["text"]
+                return idx, transcription_text
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    self.log(f"Retry {attempt + 1}/{max_retries - 1} for chunk {idx + 1}: {str(e)}")
+                else:
+                    self.log(f"Error in chunk {idx + 1} after {max_retries} attempts: {str(e)}")
+                    raise TranscriptionError(f"Failed to transcribe chunk {idx + 1}: {str(e)}")
 
     @observe(name="save-transcription", as_type="span")
     def save_transcription(self, audio_file, transcription_text, session_id):
@@ -162,9 +170,19 @@ class Transcriber(Logger):
         chunk_files = []
         
         for idx, chunk in enumerate(chunks):
-            chunk_file = os.path.join(tmpdir, f"chunk_{idx}.mp3")
-            chunk.export(chunk_file, format="mp3")
-            chunk_files.append((idx, chunk_file))
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    chunk_file = os.path.join(tmpdir, f"chunk_{idx}.mp3")
+                    chunk.export(chunk_file, format="mp3")
+                    chunk_files.append((idx, chunk_file))
+                    break
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        self.log(f"Retry {attempt + 1}/{max_retries - 1} exporting chunk {idx}: {str(e)}")
+                    else:
+                        self.log(f"Error exporting chunk {idx} after {max_retries} attempts: {str(e)}")
+                        raise TranscriptionError(f"Failed to export chunk {idx}: {str(e)}")
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = {executor.submit(self.transcribe_chunk, chunk_data): chunk_data 
@@ -197,6 +215,16 @@ class Transcriber(Logger):
         Returns:
             Transcription: The final transcription object saved to database
         """
+
+        valid_formats = ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.opus', '.wma', '.aac']
+        file_ext = os.path.splitext(audio_file)[1].lower()
+        
+        if not os.path.exists(audio_file):
+            raise TranscriptionError(f"Audio file not found: {audio_file}")
+        
+        if file_ext not in valid_formats:
+            raise TranscriptionError(f"Invalid file format '{file_ext}'. Supported formats: {', '.join(valid_formats)}")
+        
         session_id = str(uuid.uuid4())
         
         langfuse_context.update_current_trace(
@@ -235,7 +263,7 @@ if __name__ == "__main__":
     transcriber = Transcriber()
     
     try:
-        result_obj = transcriber.transcribe("test2.mp3")
+        result_obj = transcriber.transcribe("test3.mp3")
         print("\n" + "="*40)
         print("FINAL TRANSCRIPTION OBJECT")
         print("="*40)
@@ -247,3 +275,4 @@ if __name__ == "__main__":
         print("\nLangfuse traces flushed.")
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
+        

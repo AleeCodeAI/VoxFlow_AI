@@ -1,0 +1,7 @@
+{"id": "e6288c87-afeb-4260-9f08-f7eae9ed3e7d", "file_name": "test1.m4a", "wer": 0.0081799591002045, "cer": 0.00723404255319149, "ngram": 0.969047619047619, "quality_label": "OK", "timestamp": "2026-01-23T10:56:02.923590"}
+{"id": "f1a4e95c-92f3-4320-868a-a5ccb3970309", "file_name": "test2.mp3", "wer": 0.0, "cer": 0.0, "ngram": 1.0, "quality_label": "OK", "timestamp": "2026-01-23T10:56:02.924620"}
+{"id": "af5c589d-0def-499d-9e6e-292b7180f06f", "file_name": "test3.wav", "wer": 0.0432, "cer": 0.03690140845070423, "ngram": 0.9424703891708968, "quality_label": "OK", "timestamp": "2026-01-23T10:56:02.945141"}
+{"id": "59c43a50-240a-40ff-8286-8bff7727f4e9", "file_name": "test4.flac", "wer": 0.0, "cer": 0.0, "ngram": 1.0, "quality_label": "OK", "timestamp": "2026-01-23T10:56:02.945141"}
+{"id": "52ca95c7-ab64-486b-9da1-69cb7c88a10b", "file_name": "test5.opus", "wer": 0.015873015873015872, "cer": 0.01152073732718894, "ngram": 0.9505494505494505, "quality_label": "OK", "timestamp": "2026-01-23T10:56:02.950988"}
+{"id": "dc6adcad-8851-4adf-a6e2-d7efa745ffc6", "file_name": "test6.aac", "wer": 0.10112359550561797, "cer": 0.04125560538116592, "ngram": 0.7513513513513513, "quality_label": "Acceptable", "timestamp": "2026-01-23T10:56:02.956216"}
+{"id": "2be28f93-81a2-43b4-b2f2-87a96e54110d", "file_name": "test7.wma", "wer": 0.08846153846153847, "cer": 0.061862678450033994, "ngram": 0.8481012658227848, "quality_label": "Acceptable", "timestamp": "2026-01-23T10:56:02.961273"}
