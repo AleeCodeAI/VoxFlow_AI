@@ -1,0 +1,72 @@
+[
+  {
+    "id": "e6288c87-afeb-4260-9f08-f7eae9ed3e7d",
+    "file_name": "test1.m4a",
+    "chunk_completeness": true,
+    "llm_retries": 0,
+    "output_existence": true,
+    "session_integrity": true,
+    "content_quality": 0.702,
+    "timestamp": "2026-01-24T13:03:07.990180"
+  },
+  {
+    "id": "f1a4e95c-92f3-4320-868a-a5ccb3970309",
+    "file_name": "test2.mp3",
+    "chunk_completeness": true,
+    "llm_retries": 0,
+    "output_existence": true,
+    "session_integrity": true,
+    "content_quality": 0.976,
+    "timestamp": "2026-01-24T13:03:29.417328"
+  },
+  {
+    "id": "af5c589d-0def-499d-9e6e-292b7180f06f",
+    "file_name": "test3.wav",
+    "chunk_completeness": true,
+    "llm_retries": 0,
+    "output_existence": true,
+    "session_integrity": true,
+    "content_quality": 0.733,
+    "timestamp": "2026-01-24T13:05:17.454908"
+  },
+  {
+    "id": "59c43a50-240a-40ff-8286-8bff7727f4e9",
+    "file_name": "test4.flac",
+    "chunk_completeness": true,
+    "llm_retries": 0,
+    "output_existence": true,
+    "session_integrity": true,
+    "content_quality": 0.824,
+    "timestamp": "2026-01-24T13:05:37.879243"
+  },
+  {
+    "id": "52ca95c7-ab64-486b-9da1-69cb7c88a10b",
+    "file_name": "test5.opus",
+    "chunk_completeness": true,
+    "llm_retries": 0,
+    "output_existence": true,
+    "session_integrity": true,
+    "content_quality": 0.887,
+    "timestamp": "2026-01-24T13:06:19.151691"
+  },
+  {
+    "id": "dc6adcad-8851-4adf-a6e2-d7efa745ffc6",
+    "file_name": "test6.aac",
+    "chunk_completeness": true,
+    "llm_retries": 0,
+    "output_existence": true,
+    "session_integrity": true,
+    "content_quality": 0.7,
+    "timestamp": "2026-01-24T13:06:37.008247"
+  },
+  {
+    "id": "2be28f93-81a2-43b4-b2f2-87a96e54110d",
+    "file_name": "test7.wma",
+    "chunk_completeness": true,
+    "llm_retries": 0,
+    "output_existence": true,
+    "session_integrity": true,
+    "content_quality": 0.71,
+    "timestamp": "2026-01-24T13:07:03.532814"
+  }
+]

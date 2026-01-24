@@ -21,6 +21,18 @@ url = os.getenv("OPENROUTER_URL")
 gpt = os.getenv("GPT_MODEL")
 deepseek = os.getenv("DEEPSEEK_MODEL")
 
+class PreprocessorError(Exception):
+    """Base exception for preprocessor errors"""
+    pass
+
+class LLMCallError(PreprocessorError):
+    """Raised when LLM API call fails"""
+    pass
+
+class DatabaseError(PreprocessorError):
+    """Raised when database operations fail"""
+    pass
+
 class PreprocessedResult(BaseModel):
     """Database model for storing preprocessed transcription results."""
     id: str = Field(description="Matches the original transcription ID")
@@ -41,17 +53,24 @@ class Preprocessor(Logger):
         Initialize the Preprocessor with OpenAI client, Langfuse observability, and prompts.
         Sets up connection to OpenRouter API and Langfuse for tracking.
         """
-        self.client = OpenAI(api_key=api_key, base_url=url)
-        self.langfuse = Langfuse(
-            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-            host=os.getenv("LANGFUSE_HOST")
-        )
-        self.model = gpt 
-        self.system_prompt = SYSTEM_PROMPT
-        self.user_prompt_with_context = USER_PROMPT_WITH_CONTEXT
-        self.user_prompt_no_context = USER_PROMPT_NO_CONTEXT
-        self.log("Initialized Preprocessor")
+        try:
+            if not api_key or not url:
+                raise ValueError("Missing OPENROUTER_API_KEY or OPENROUTER_URL in environment")
+            
+            self.client = OpenAI(api_key=api_key, base_url=url)
+            self.langfuse = Langfuse(
+                secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+                public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+                host=os.getenv("LANGFUSE_HOST")
+            )
+            self.model = gpt 
+            self.system_prompt = SYSTEM_PROMPT
+            self.user_prompt_with_context = USER_PROMPT_WITH_CONTEXT
+            self.user_prompt_no_context = USER_PROMPT_NO_CONTEXT
+            self.log("Initialized Preprocessor")
+        except Exception as e:
+            logging.error(f"Failed to initialize Preprocessor: {str(e)}")
+            raise
 
     @observe(name="save-preprocessed", as_type="span")
     def save_preprocessed(self, session_id, audio_name, clean_text):
@@ -65,25 +84,34 @@ class Preprocessor(Logger):
             
         Returns:
             PreprocessedResult: The saved result object with metadata
-        """
-        db_path = r"D:\Projects\audio_preprocessor\backend\databases"
-        jsonl_file = os.path.join(db_path, "preprocessings.jsonl")
-        os.makedirs(db_path, exist_ok=True)
-        
-        result_obj = PreprocessedResult(
-            id=session_id,
-            name=audio_name,
-            preprocessed_transcription=clean_text,
-            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        )
-        
-        with open(jsonl_file, 'a', encoding='utf-8') as f:
-            f.write(result_obj.model_dump_json() + '\n')
-            f.flush()
-            os.fsync(f.fileno())
             
-        self.log(f"Cleaned text for {audio_name} saved to {jsonl_file}")
-        return result_obj
+        Raises:
+            DatabaseError: If file operations fail
+        """
+        try:
+            db_path = r"D:\Projects\audio_preprocessor\backend\databases"
+            jsonl_file = os.path.join(db_path, "preprocessings.jsonl")
+            os.makedirs(db_path, exist_ok=True)
+            
+            result_obj = PreprocessedResult(
+                id=session_id,
+                name=audio_name,
+                preprocessed_transcription=clean_text,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+            
+            with open(jsonl_file, 'a', encoding='utf-8') as f:
+                f.write(result_obj.model_dump_json() + '\n')
+                f.flush()
+                os.fsync(f.fileno())
+                
+            self.log(f"Cleaned text for {audio_name} saved to {jsonl_file}")
+            self.log(f"the length of cleaned text: {len(clean_text)} characters")
+            return result_obj
+        except Exception as e:
+            error_msg = f"Failed to save preprocessed data for {audio_name}: {str(e)}"
+            self.log(error_msg)
+            raise DatabaseError(error_msg) from e
 
     @observe(name="make-messages", as_type="span")
     def make_messages(self, previous_chunk, current_chunk):
@@ -148,7 +176,7 @@ class Preprocessor(Logger):
     def call_llm(self, messages, chunk_idx=None):
         """
         Call the LLM to clean transcription text with structured output parsing.
-        Enriches Langfuse generation with token usage and cost data from OpenRouter.
+        Tries deepseek first, then falls back to GPT for 2 retries.
         
         Args:
             messages: Array of message objects for the LLM
@@ -156,58 +184,62 @@ class Preprocessor(Logger):
             
         Returns:
             str: The cleaned transcription text
+            
+        Raises:
+            LLMCallError: If all 3 attempts fail
         """
-        langfuse_context.update_current_observation(
-            model=self.model,
-            input=messages
-        )
-        
-        response = self.client.chat.completions.parse(
-            model=self.model,
-            messages=messages,
-            response_format=LLMParsedResponse
-        )
-        
-        parsed_obj = getattr(response.choices[0].message, 'parsed', None)
-        
-        if parsed_obj is not None:
-            content = parsed_obj.preprocessed_transcription
-        else:
-            self.log("Structured parsing failed. Falling back to raw content.")
-            content = response.choices[0].message.content
-        
-        if response.usage:
-            input_cost = float(response.usage.cost_details.get('upstream_inference_prompt_cost', 0.0))
-            output_cost = float(response.usage.cost_details.get('upstream_inference_completions_cost', 0.0))
-            total_cost = float(response.usage.cost)
-            upstream_inference_cost = float(response.usage.cost_details.get('upstream_inference_cost', 0.0))
+        for attempt in range(3):
+            model = deepseek if attempt == 0 else gpt
             
-            cached_tokens = response.usage.prompt_tokens_details.cached_tokens
-            reasoning_tokens = response.usage.completion_tokens_details.reasoning_tokens
-            
-            langfuse_context.update_current_observation(
-                output=content,
-                usage={
-                    "input": response.usage.prompt_tokens,
-                    "output": response.usage.completion_tokens,
-                    "total": response.usage.total_tokens,
-                    "unit": "TOKENS",
-                    "input_cost": input_cost,
-                    "output_cost": output_cost
-                },
-                metadata={
-                    "chunk_index": chunk_idx,
-                    "total_cost": total_cost,
-                    "upstream_inference_cost": upstream_inference_cost,
-                    "cached_tokens": cached_tokens,
-                    "reasoning_tokens": reasoning_tokens,
-                    "is_byok": response.usage.is_byok
-                }
-            )
-            
-            self.log(f"Tokens: {response.usage.total_tokens} | Cost: ${total_cost:.8f}")
-        
-        return content
+            try:
+                langfuse_context.update_current_observation(model=model, input=messages)
+                
+                response = self.client.chat.completions.parse(
+                    model=model,
+                    messages=messages,
+                    response_format=LLMParsedResponse
+                )
+                
+                parsed_obj = getattr(response.choices[0].message, 'parsed', None)
+                content = parsed_obj.preprocessed_transcription if parsed_obj else response.choices[0].message.content
+                
+                if response.usage:
+                    input_cost = float(response.usage.cost_details.get('upstream_inference_prompt_cost') or 0.0)
+                    output_cost = float(response.usage.cost_details.get('upstream_inference_completions_cost') or 0.0)
+                    total_cost = float(response.usage.cost or 0.0)
+                    upstream_inference_cost = float(response.usage.cost_details.get('upstream_inference_cost') or 0.0)
+                    cached_tokens = getattr(response.usage.prompt_tokens_details, 'cached_tokens', 0) or 0
+                    reasoning_tokens = getattr(response.usage.completion_tokens_details, 'reasoning_tokens', 0) or 0
+                                    
+                    langfuse_context.update_current_observation(
+                        output=content,
+                        usage={
+                            "input": response.usage.prompt_tokens,
+                            "output": response.usage.completion_tokens,
+                            "total": response.usage.total_tokens,
+                            "unit": "TOKENS",
+                            "input_cost": input_cost,
+                            "output_cost": output_cost
+                        },
+                        metadata={
+                            "chunk_index": chunk_idx,
+                            "total_cost": total_cost,
+                            "upstream_inference_cost": upstream_inference_cost,
+                            "cached_tokens": cached_tokens,
+                            "reasoning_tokens": reasoning_tokens,
+                            "is_byok": response.usage.is_byok,
+                            "model_used": model
+                        }
+                    )
+                    
+                    self.log(f"Model: {model} | Tokens: {response.usage.total_tokens} | Cost: ${total_cost:.8f}")
+                
+                return content
+                
+            except Exception as e:
+                self.log(f"Attempt {attempt + 1}/3 failed with {model}: {str(e)}")
+                if attempt == 2:
+                    raise LLMCallError(f"All 3 attempts failed: {str(e)}") from e
 
     @observe(name="audio-preprocessing")
     def preprocess(self, input_data, chunk_size=2000):
@@ -222,57 +254,85 @@ class Preprocessor(Logger):
             
         Returns:
             PreprocessedResult: The final cleaned result saved to database
+            
+        Raises:
+            PreprocessorError: If preprocessing fails at any stage
         """
-        if isinstance(input_data, dict):
-            raw_text = input_data.get("transcription", "")
-            session_id = input_data.get("id", "")
-            audio_name = input_data.get("name", "")
-        else:
-            raw_text = input_data.transcription
-            session_id = input_data.id
-            audio_name = input_data.name
+        try:
+            if isinstance(input_data, dict):
+                raw_text = input_data.get("transcription", "")
+                session_id = input_data.get("id", "")
+                audio_name = input_data.get("name", "")
+            else:
+                raw_text = input_data.transcription
+                session_id = input_data.id
+                audio_name = input_data.name
 
-        langfuse_context.update_current_trace(
-            session_id=session_id,
-            tags=["preprocessing", "audio"],
-            metadata={
-                "audio_name": audio_name,
-                "transcription_length": len(raw_text),
-                "chunk_size": chunk_size
-            }
-        )
+            if not raw_text or not session_id:
+                raise ValueError("Missing required fields: transcription or id")
 
-        self.log(f"Starting preprocessing for ID: {session_id}")
-        
-        if len(raw_text) <= chunk_size:
-            self.log("Processing in single pass...")
-            final_combined_text = self.call_llm(self.make_messages("", raw_text))
-        else:
-            chunks = self.chunk_transcription(raw_text, chunk_size)
-            preprocessed_chunks = []
-            previous_preprocessed = ""
+            langfuse_context.update_current_trace(
+                session_id=session_id,
+                tags=["preprocessing", "audio"],
+                metadata={
+                    "audio_name": audio_name,
+                    "transcription_length": len(raw_text),
+                    "chunk_size": chunk_size
+                }
+            )
+
+            self.log(f"Starting preprocessing for ID: {session_id}")
+            self.log(f"Transcription length: {len(raw_text)} characters")
+
+            if len(raw_text) <= chunk_size:
+                self.log("Processing in single pass...")
+                final_combined_text = self.call_llm(self.make_messages("", raw_text))
+            else:
+                chunks = self.chunk_transcription(raw_text, chunk_size)
+                preprocessed_chunks = []
+                previous_preprocessed = ""
+                
+                for idx, chunk in enumerate(chunks):
+                    self.log(f"Processing chunk {idx + 1}/{len(chunks)}")
+                    current_clean = self.call_llm(
+                        self.make_messages(previous_preprocessed, chunk),
+                        chunk_idx=idx + 1
+                    )
+                    preprocessed_chunks.append(current_clean)
+                    previous_preprocessed = current_clean
+                
+                final_combined_text = " ".join(preprocessed_chunks)
+
+            result = self.save_preprocessed(session_id, audio_name, final_combined_text)
             
-            for idx, chunk in enumerate(chunks):
-                self.log(f"Processing chunk {idx + 1}/{len(chunks)}")
-                current_clean = self.call_llm(
-                    self.make_messages(previous_preprocessed, chunk),
-                    chunk_idx=idx + 1
-                )
-                preprocessed_chunks.append(current_clean)
-                previous_preprocessed = current_clean
+            self.langfuse.score(
+                trace_id=langfuse_context.get_current_trace_id(),
+                name="preprocessing-success",
+                value=1,
+                comment="Successfully completed preprocessing"
+            )
             
-            final_combined_text = " ".join(preprocessed_chunks)
-
-        result = self.save_preprocessed(session_id, audio_name, final_combined_text)
-        
-        self.langfuse.score(
-            trace_id=langfuse_context.get_current_trace_id(),
-            name="preprocessing-success",
-            value=1,
-            comment="Successfully completed preprocessing"
-        )
-        
-        return result
+            return result
+            
+        except (LLMCallError, DatabaseError) as e:
+            self.log(f"Preprocessing failed: {str(e)}")
+            self.langfuse.score(
+                trace_id=langfuse_context.get_current_trace_id(),
+                name="preprocessing-failure",
+                value=0,
+                comment=str(e)
+            )
+            raise
+        except Exception as e:
+            error_msg = f"Unexpected error during preprocessing: {str(e)}"
+            self.log(error_msg)
+            self.langfuse.score(
+                trace_id=langfuse_context.get_current_trace_id(),
+                name="preprocessing-failure",
+                value=0,
+                comment=error_msg
+            )
+            raise PreprocessorError(error_msg) from e
 
 if __name__ == "__main__":
     preprocessor = Preprocessor()
@@ -292,12 +352,15 @@ Also, um, in terms of the interface, I was thinking that the user could either u
 """
     }
     
-    final_result = preprocessor.preprocess(test_input)
-    
-    print("\n" + "="*40)
-    print("FINAL PREPROCESSED OBJECT")
-    print("="*40)
-    print(final_result.model_dump_json(indent=4))
-    
-    preprocessor.langfuse.flush()
-    print("\nLangfuse traces flushed.")
+    try:
+        final_result = preprocessor.preprocess(test_input)
+        
+        print("\n" + "="*40)
+        print("FINAL PREPROCESSED OBJECT")
+        print("="*40)
+        print(final_result.model_dump_json(indent=4))
+    except PreprocessorError as e:
+        print(f"\nPreprocessing failed: {str(e)}")
+    finally:
+        preprocessor.langfuse.flush()
+        print("\nLangfuse traces flushed.")

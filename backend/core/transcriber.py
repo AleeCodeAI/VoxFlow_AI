@@ -11,7 +11,7 @@ from pydub import AudioSegment
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
-from color import Logger
+from core.color import Logger
 from langfuse.decorators import observe, langfuse_context
 from langfuse import Langfuse
 
