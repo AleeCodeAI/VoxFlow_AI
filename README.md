@@ -8,7 +8,7 @@
 [![OpenAI Whisper](https://img.shields.io/badge/OpenAI_Whisper-20250625-orange.svg)](https://github.com/openai/whisper)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A powerful, AI-driven audio processing application that transcribes audio files, preprocesses transcriptions using advanced language models, and provides additional tools for text manipulation, translation, and communication. This project stands out due to its comprehensive AI engineering approach, featuring a robust FastAPI backend, a modern React frontend, and integrated Langfuse observability, showcasing diverse and complete AI engineering skillsets. Built with a modern web frontend and a robust Python backend.
+A powerful, AI-driven audio processing application that transcribes audio files, preprocesses transcriptions using advanced language models, and provides additional tools for text manipulation, translation, and communication. This project stands out due to its comprehensive AI engineering approach, featuring a robust FastAPI backend, a modern React frontend, integrated Langfuse observability, and thorough evaluations, showcasing diverse and complete AI engineering skillsets. Built with a modern web frontend and a robust Python backend.
 
 ## Why This Project Exists
 
@@ -98,6 +98,25 @@ Observability is crucial for AI applications because it provides visibility into
 
 This integration demonstrates a production-ready approach to AI engineering, making the application not just functional but also maintainable and scalable.
 
+## Evaluations
+
+The VoxFlow AI project includes a comprehensive evaluation pipeline to ensure robustness, correctness, and semantic quality of the transcriber and preprocessor modules. Evaluations were conducted on a curated dataset of 7 audio files, covering diverse formats (MP3, WAV, FLAC), content types (conversational speech, technical discussions, noisy environments), and quality variations.
+
+### Transcriber Evaluation
+- **Functional Correctness**: Verifies reliable operation without errors or crashes, achieving 100% success across all files.
+- **Lexical Similarity**: Assesses textual accuracy through word overlap and string similarity metrics, showing high similarity for all files.
+
+### Preprocessor Evaluation
+- **Functional Correctness**: Confirms pipeline reliability and complete output generation, with 100% success.
+- **AI-as-Judge Semantic Evaluation**: Uses chain-of-thought reasoning with LLMs to evaluate meaning preservation, information loss, preprocessing quality, hallucination, and confidence. Results show all GOLDEN labels with high confidence (~0.95–1.0), indicating perfect meaning preservation, minimal loss, and zero hallucinations.
+
+### Key Insights
+- The pipeline is robust with all functional tests passing.
+- Semantic evaluation justifies scores transparently, ensuring interpretability.
+- Multi-layered approach (functional, lexical, AI-as-Judge) provides comprehensive validation.
+
+For detailed evaluation methodology, metrics, results, and file structures, refer to `backend/evaluations/about_evaluations.md`.
+
 ## Architecture
 
 ![Architecture](Architecture.png)
@@ -121,6 +140,33 @@ audio_preprocessor/
 │   ├── databases/
 │   │   ├── preprocessings.jsonl # Storage for preprocessed results
 │   │   └── transcriptions.jsonl  # Storage for transcription results
+│   ├── evaluations/
+│   │   ├── about_evaluations.md       # This document
+│   │   ├── preprocessor\              # Results for the preprocessor module
+│   │   │   ├── ai_as_judge.py         # AI-as-Judge evaluation script
+│   │   │   ├── color.py               # Terminal output styling utility
+│   │   │   ├── functional_correctness.py
+│   │   │   ├── functional_evaluation_summary.md
+│   │   │   ├── functional_executions.json
+│   │   │   ├── judge_evaluation_summary.md
+│   │   │   └── judge_executions.jsonl
+│   │   ├── test_data\                 # Input data used for all tests
+│   │   │   ├── preprocessor\
+│   │   │   │   ├── preprocessings.jsonl
+│   │   │   │   └── transcriptions_data.jsonl
+│   │   │   └── transcriber\
+│   │   │       ├── invalids\          # Files for negative testing (test9.pdf, test10.docx)
+│   │   │       └── valids\            # Valid audio files (test1.m4a - test8.mp3)
+│   │   └── transcriber\               # Results for the transcriber module
+│   │       ├── color.py
+│   │       ├── functional_correctness.py
+│   │       ├── functional_evaluation_results.jsonl
+│   │       ├── functional_evaluation_summary.md
+│   │       ├── lexical_evaluation_summary.md
+│   │       ├── lexical_evaluations_result.jsonl
+│   │       ├── lexical_similarity.py
+│   │       ├── transcriptions_data.jsonl
+│   │       └── transcriptions_reference_data.jsonl
 │   └── tools/
 │       ├── color.py            # Tool-specific logging utilities
 │       ├── email_sender.py     # Email sending functionality
@@ -131,6 +177,7 @@ audio_preprocessor/
     ├── eslint.config.js        # ESLint configuration
     ├── index.html              # Main HTML file
     ├── package.json            # Node.js project configuration
+    ├── package-lock.json       # Node.js lockfile
     ├── postcss.config.js       # PostCSS configuration
     ├── tailwind.config.js      # Tailwind CSS configuration
     ├── vite.config.js          # Vite build configuration

@@ -54,8 +54,8 @@ class EvaluationPipeline(Logger):
         self.transcriptions_path = transcriptions_path
         self.preprocessor_script_path = preprocessor_script_path
         self.output_dir = output_dir or str(Path(__file__).parent)
-        self.results_file = os.path.join(self.output_dir, "execution_results.json")
-        self.summary_file = os.path.join(self.output_dir, "evaluation_summary.md")
+        self.results_file = os.path.join(self.output_dir, "functional_executions.json")
+        self.summary_file = os.path.join(self.output_dir, "functional_evaluation_summary.md")
         os.makedirs(self.output_dir, exist_ok=True)
         self.log("Evaluation pipeline initialized")
         
