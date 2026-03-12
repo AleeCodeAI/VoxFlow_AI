@@ -89,7 +89,7 @@ class Preprocessor(Logger):
             DatabaseError: If file operations fail
         """
         try:
-            db_path = r"D:\Projects\audio_preprocessor\backend\databases"
+            db_path = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(os.path.dirname(__file__)), "databases"))
             jsonl_file = os.path.join(db_path, "preprocessings.jsonl")
             os.makedirs(db_path, exist_ok=True)
             

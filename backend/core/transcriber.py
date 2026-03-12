@@ -100,7 +100,7 @@ class Transcriber(Logger):
         Returns:
             Transcription: The saved transcription object with metadata
         """
-        db_path = r"D:\Projects\audio_preprocessor\backend\databases"
+        db_path = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(os.path.dirname(__file__)), "databases"))
         jsonl_file = os.path.join(db_path, "transcriptions.jsonl")
         os.makedirs(db_path, exist_ok=True)
         
@@ -216,7 +216,7 @@ class Transcriber(Logger):
             Transcription: The final transcription object saved to database
         """
 
-        valid_formats = ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.opus', '.wma', '.aac']
+        valid_formats = ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.opus', '.wma', '.aac', '.webm']
         file_ext = os.path.splitext(audio_file)[1].lower()
         
         if not os.path.exists(audio_file):

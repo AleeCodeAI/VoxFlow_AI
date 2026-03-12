@@ -29,8 +29,8 @@ async def lifespan(app: FastAPI):
     """Initialize services on startup and cleanup on shutdown"""
     # Startup
     logger.info("✅ Audio Preprocessor API is starting up...")
-    logger.info(f"✅ Transcriber loaded with model: base")
-    logger.info(f"✅ Preprocessor initialized")
+    logger.info("✅ Transcriber loaded with model: base")
+    logger.info("✅ Preprocessor initialized")
     yield
     # Shutdown
     logger.info("👋 Shutting down Audio Preprocessor API...")
@@ -236,7 +236,7 @@ async def transcribe_direct_text(input_data: DirectTextInput):
         )
         
         # Save to database
-        db_path = r"D:\Projects\audio_preprocessor\backend\databases"
+        db_path = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "databases"))
         jsonl_file = os.path.join(db_path, "transcriptions.jsonl")
         os.makedirs(db_path, exist_ok=True)
         
@@ -507,7 +507,7 @@ async def transcribe_and_process_audio(file: UploadFile = File(...)):
 async def get_transcription(transcription_id: str):
     """Retrieve a specific transcription by ID"""
     try:
-        db_path = r"D:\Projects\audio_preprocessor\backend\databases"
+        db_path = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "databases"))
         jsonl_file = os.path.join(db_path, "transcriptions.jsonl")
         
         if not os.path.exists(jsonl_file):
@@ -554,7 +554,7 @@ async def get_transcription(transcription_id: str):
 async def get_preprocessing(preprocessing_id: str):
     """Retrieve a specific preprocessed result by ID"""
     try:
-        db_path = r"D:\Projects\audio_preprocessor\backend\databases"
+        db_path = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "databases"))
         jsonl_file = os.path.join(db_path, "preprocessings.jsonl")
         
         if not os.path.exists(jsonl_file):
