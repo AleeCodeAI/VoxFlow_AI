@@ -3,40 +3,18 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic_schemas import PreprocessorEvaluationResult, TranscriptionInput
 import statistics
-from color import Logger
+from utils.color import Logger
 import logging
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from core.preprocessor import Preprocessor
+from core.preprocessor.preprocessor import Preprocessor
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(message)s'
 )
-
-class PreprocessorEvaluationResult(BaseModel):
-    """
-    Stores evaluation metrics for a single preprocessing execution.
-    """
-    id: str = Field(description="Unique identifier for the evaluation result")
-    file_name: str = Field(description="Name of the file being evaluated")
-    chunk_completeness: bool = Field(description="Whether all chunks were processed completely")
-    llm_retries: int = Field(description="Number of retries made by the LLM during processing")
-    output_existence: bool = Field(description="Indicates if the output file exists after processing")
-    session_integrity: bool = Field(description="Indicates if the session data remains intact after processing")
-    content_quality: float = Field(description="Quality score of the processed content")
-    timestamp: datetime = Field(description="Timestamp of when the evaluation was performed")
-
-class TranscriptionInput(BaseModel):
-    """
-    Represents a single transcription from the input JSONL file.
-    """
-    id: str
-    name: str
-    transcription: str
-    timestamp: str
 
 class EvaluationPipeline(Logger):
     """

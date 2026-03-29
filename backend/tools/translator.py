@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic_schemas import TranslationOutput
 from deep_translator import GoogleTranslator
-from color import Logger
+from utils.color import Logger
 import logging 
 
 logging.basicConfig(
@@ -9,13 +9,6 @@ logging.basicConfig(
 )
 
 
-# --- Schemas ---
-class TranslationInput(BaseModel):
-    language: str 
-    processed_data: str
-
-class TranslationOutput(BaseModel):
-    translated_data: str
 
 class Translate(Logger):
     name = "Translator"

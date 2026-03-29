@@ -6,8 +6,8 @@ import os
 from tempfile import NamedTemporaryFile
 import logging
 from contextlib import asynccontextmanager
-from core.transcriber import Transcriber, Transcription
-from core.preprocessor import Preprocessor, PreprocessedResult
+from core.transcriber.transcriber import Transcriber, Transcription
+from core.preprocessor.preprocessor import Preprocessor, PreprocessedResult
 
 # Configure logging
 logging.basicConfig(
@@ -339,7 +339,7 @@ async def send_email(request: EmailRequest):
         )
         
         # Send email
-        result = email_sender.send_email(email_data)
+        email_sender.send_email(email_data)
         
         logger.info(f"✅ Email sent successfully to: {request.to}")
         
@@ -372,7 +372,7 @@ async def extract_text(request: TextExtractionRequest):
         logger.info("Extracting keywords and keypoints from processed data")
         
         # Import the TextExtracter class
-        from tools.text_extracter import TextExtracter, ProcessedData
+        from tools.text_extractor import TextExtracter, ProcessedData
         
         # Create text extracter instance
         text_extracter = TextExtracter()
@@ -383,7 +383,7 @@ async def extract_text(request: TextExtractionRequest):
         # Extract keywords and keypoints
         extraction_result = text_extracter.extract(processed_data.processed_data)
         
-        logger.info(f"✅ Text extraction completed")
+        logger.info("✅ Text extraction completed")
         
         return TextExtractionResponse(
             status="✅ success",
@@ -428,7 +428,7 @@ async def translate_text(request: TranslationRequest):
             data=request.processed_data
         )
         
-        logger.info(f"✅ Translation completed")
+        logger.info("✅ Translation completed")
         
         return TranslationResponse(
             status="✅ success",

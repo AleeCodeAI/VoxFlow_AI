@@ -1,9 +1,8 @@
 import os 
 from dotenv import load_dotenv
 from openai import OpenAI 
-from pydantic import BaseModel, Field 
-from typing import List
-from color import Logger
+from pydantic_schemas import TextExtraction, ProcessedData
+from utils.color import Logger
 import logging 
 
 logging.basicConfig(
@@ -17,14 +16,6 @@ url = os.getenv("OPENROUTER_URL")
 deepseek = os.getenv("DEEPSEEK_MODEL")
 gpt = os.getenv("GPT_MODEL")
 
-class TextExtraction(BaseModel):
-    keywords: List[str] = Field(
-        description="A list of specific keywords found in the text, specifically focusing on terms related to the Rajya Sabha (e.g., Chairman, MP, Bill, Session).")
-    keypoints: List[str] = Field(
-        description="A list of bullet points summarizing the main actions or discussions involving the Rajya Sabha within this data.")
-
-class ProcessedData(BaseModel):
-    processed_data: str = Field(description="the processed data as input to TextAnalyzer")
 
 SYSTEM_PROMPT = """ 
 Role: You are a Precise Data Extraction Assistant. Your goal is to analyze text and transform it into a structured JSON format for reporting.

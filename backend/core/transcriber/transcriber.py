@@ -8,10 +8,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import whisper
 from pydub import AudioSegment
-from pydantic import BaseModel, Field
+from pydantic_schemas import Transcription, TranscriptionError
 from dotenv import load_dotenv
 
-from core.color import Logger
+from utils.color import Logger
 from langfuse.decorators import observe, langfuse_context
 from langfuse import Langfuse
 
@@ -23,16 +23,6 @@ logging.basicConfig(
 load_dotenv(override=True)
 
 MODEL = "small"
-
-class TranscriptionError(Exception):
-    pass
-
-class Transcription(BaseModel):
-    """Database model for storing audio transcription results."""
-    id: str = Field(description="Unique identifier for the transcription")
-    name: str = Field(description="Name of the audio file transcribed")
-    transcription: str = Field(description="The full transcription of the audio file")
-    timestamp: str = Field(description="Time of transcription")
 
 class Transcriber(Logger):
     name = "Transcriber"

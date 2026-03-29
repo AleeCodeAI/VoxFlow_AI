@@ -2,10 +2,14 @@ import os
 import logging
 from datetime import datetime
 from openai import OpenAI
-from pydantic import BaseModel, Field 
+from pydantic_schemas import (PreprocessedResult, 
+                                   LLMParsedResponse,
+                                   PreprocessorError,
+                                   LLMCallError,
+                                   DatabaseError)
 from dotenv import load_dotenv
-from core.color import Logger
-from core.prompts import SYSTEM_PROMPT, USER_PROMPT_NO_CONTEXT, USER_PROMPT_WITH_CONTEXT
+from utils.color import Logger
+from prompts.prompts import SYSTEM_PROMPT, USER_PROMPT_NO_CONTEXT, USER_PROMPT_WITH_CONTEXT
 from langfuse.decorators import observe, langfuse_context
 from langfuse import Langfuse
 
@@ -20,29 +24,6 @@ api_key = os.getenv("OPENROUTER_API_KEY")
 url = os.getenv("OPENROUTER_URL")
 gpt = os.getenv("GPT_MODEL")
 deepseek = os.getenv("DEEPSEEK_MODEL")
-
-class PreprocessorError(Exception):
-    """Base exception for preprocessor errors"""
-    pass
-
-class LLMCallError(PreprocessorError):
-    """Raised when LLM API call fails"""
-    pass
-
-class DatabaseError(PreprocessorError):
-    """Raised when database operations fail"""
-    pass
-
-class PreprocessedResult(BaseModel):
-    """Database model for storing preprocessed transcription results."""
-    id: str = Field(description="Matches the original transcription ID")
-    name: str = Field(description="Original audio filename")
-    preprocessed_transcription: str = Field(description="The cleaned text produced by LLM")
-    timestamp: str = Field(description="Time of preprocessing")
-
-class LLMParsedResponse(BaseModel):
-    """Response schema for structured output from LLM."""
-    preprocessed_transcription: str = Field(description="The cleaned text")
 
 class Preprocessor(Logger):
     name = "Preprocessor"

@@ -1,20 +1,12 @@
-import os
-from pydantic import BaseModel, Field
+from pydantic_schemas import Email
 import requests
-from color import Logger
+from utils.color import Logger
 import logging 
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(message)s'
 )
-
-class Email(BaseModel):
-    to: str = Field(description="The recipient's email")
-    subject: str = Field(description="The subject of the email")
-    processed_data: str = Field(description="The processed data that will be used to craft email")
-    user_message: str = Field(description="The user's message along the email")
-    sender: str = Field(description="Sender's name")
 
 class EmailSender(Logger):
     name = "EmailSender"
