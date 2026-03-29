@@ -1,4 +1,4 @@
-SYSTEM_PROMPT = """
+PREPROCESSOR_SYSTEM_PROMPT = """
 PERSONA:
 You are an expert transcription preprocessor who specializes in transforming raw speech-to-text outputs into clean, precise, and readable text.
 
@@ -32,7 +32,7 @@ OUTPUT SCHEMA:
 }
 """
 
-USER_PROMPT_WITH_CONTEXT = """
+PREPROCESSOR_USER_PROMPT_WITH_CONTEXT = """
 PREVIOUS PREPROCESSED CHUNK (for context and consistency):
 {previous_chunk}
 
@@ -44,7 +44,7 @@ CURRENT RAW TRANSCRIPTION CHUNK (to preprocess):
 Please preprocess the current chunk while maintaining EXACT consistency with the previous chunk's tone, style, formality, and sentence structure.
 """
 
-USER_PROMPT_NO_CONTEXT = """
+PREPROCESSOR_USER_PROMPT_NO_CONTEXT = """
 RAW TRANSCRIPTION CHUNK (to preprocess):
 {current_chunk}
 

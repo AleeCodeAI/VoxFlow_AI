@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI 
 from pydantic_schemas import TextExtraction, ProcessedData
+from prompts.text_extractor_prompts import TEXT_EXTRACTOR_SYSTEM_PROMPT, TEXT_EXTRACTOR_USER_PROMPT
 from utils.color import Logger
 import logging 
 
@@ -16,46 +17,14 @@ url = os.getenv("OPENROUTER_URL")
 deepseek = os.getenv("DEEPSEEK_MODEL")
 gpt = os.getenv("GPT_MODEL")
 
-
-SYSTEM_PROMPT = """ 
-Role: You are a Precise Data Extraction Assistant. Your goal is to analyze text and transform it into a structured JSON format for reporting.
-
-Task: Examine the provided text and perform two primary extractions:
-1. Keywords: Identify the most significant nouns, technical terms, or names mentioned in the text.
-2. Keypoints: Summarize the essential facts, actions, or takeaways from the text into a list of clear, concise bullet points.
-
-Guidelines:
-- Focus on "signal over noise"—exclude generic filler words.
-- Ensure the keypoints capture the "Who, What, and Why" of the input.
-- Maintain a neutral, professional tone.
-
-Output Format:
-You must return ONLY a JSON object. Do not include any conversational text before or after the JSON.
-
-{
-  "keywords": ["word1", "word2", "word3"],
-  "keypoints": [
-    "The primary action or fact identified in the text.",
-    "A secondary supporting detail or result.",
-    "A final takeaway or next step mentioned."
-  ]
-}
-"""
-
-USER_PROMPT = """ 
-here is the data to extract the keywords and keypoints:
-
-{processed_data}
-"""
-
 class TextExtracter(Logger):
     name = "TextAnalyzer"
     color = Logger.CYAN
 
     def __init__(self):
         self.client = OpenAI(api_key=api_key, base_url=url)
-        self.system_prompt = SYSTEM_PROMPT
-        self.user_prompt = USER_PROMPT
+        self.system_prompt = TEXT_EXTRACTOR_SYSTEM_PROMPT
+        self.user_prompt = TEXT_EXTRACTOR_USER_PROMPT
         self.model = deepseek
         self.log("Initialized TextAnalyzer")
 

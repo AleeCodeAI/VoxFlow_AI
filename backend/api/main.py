@@ -4,14 +4,14 @@ import os
 from tempfile import NamedTemporaryFile
 import logging
 from contextlib import asynccontextmanager
-from core.transcriber.transcriber import Transcriber, Transcription
+from core.transcriber.transcriber import Transcriber
 from core.preprocessor.preprocessor import Preprocessor
 from pydantic_schemas import (
     DirectTextInput, ProcessRequest, TranscriptionResponse,
     PreprocessingResponse, CombinedResponse, 
     EmailRequest, EmailResponse,
     TextExtractionRequest, TextExtractionData, TextExtractionResponse,
-    TranslationRequest, TranslationResponse
+    TranslationRequest, TranslationResponse, Transcription
 )
 # Configure logging
 logging.basicConfig(
