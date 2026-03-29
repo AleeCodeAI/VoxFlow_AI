@@ -18,32 +18,47 @@ from .tools_schemas.email_sender_schemas import Email
 from .tools_schemas.text_extractor_schemas import TextExtraction, ProcessedData
 from .tools_schemas.translator_schemas import TranslationOutput
 
+# ======================== SCHEMAS FOR FASTAPI ============================
+from .fastapi_schemas import (
+    DirectTextInput, ProcessRequest, TranscriptionResponse,
+    PreprocessingResponse, CombinedResponse, ErrorResponse,
+    EmailRequest, EmailResponse,
+    TextExtractionRequest, TextExtractionData, TextExtractionResponse,
+    TranslationRequest, TranslationResponse
+)
+
 if __name__ == "__main__":
     print("THESE ARE THE PYDANTIC SCHEMAS FOR THE ENTIRE PROJECT")
     print("==" * 30)
 
     sections = {
-        "Transcriber Schemas": [
-            Transcription, TranscriptionError,
-        ],
-        "Preprocessor Schemas": [
-            PreprocessedResult, LLMParsedResponse,
-            PreprocessorError, LLMCallError, DatabaseError,
-        ],
-        "Preprocessor Evaluation (AI Judge)": [
-            EvaluationError, Result, AIResult,
-        ],
-        "Preprocessor Evaluation (Functional)": [
-            PreprocessorEvaluationResult, TranscriptionInput,
-        ],
-        "Transcriber Evaluation": [
-            NormalizedObject, LexicalMetrics,
-            TranscriptionEvaluationResult, EvaluationSummary, ErrorMessage,
-        ],
-        "Tools Schemas": [
-            Email, TextExtraction, ProcessedData, TranslationOutput,
-        ],
-    }
+    "Transcriber Schemas": [
+        Transcription, TranscriptionError,
+    ],
+    "Preprocessor Schemas": [
+        PreprocessedResult, LLMParsedResponse,
+        PreprocessorError, LLMCallError, DatabaseError,
+    ],
+    "Preprocessor Evaluation (AI Judge)": [
+        EvaluationError, Result, AIResult,
+    ],
+    "Preprocessor Evaluation (Functional)": [
+        PreprocessorEvaluationResult, TranscriptionInput,
+    ],
+    "Transcriber Evaluation": [
+        NormalizedObject, LexicalMetrics,
+        TranscriptionEvaluationResult, EvaluationSummary, ErrorMessage,
+    ],
+    "Tools Schemas": [
+        Email, TextExtraction, ProcessedData, TranslationOutput,
+    ],
+    "FastAPI Schemas": [
+        DirectTextInput, ProcessRequest, TranscriptionResponse,
+        PreprocessingResponse, CombinedResponse, ErrorResponse,
+        EmailRequest, EmailResponse,
+        TextExtractionRequest, TextExtractionData, TextExtractionResponse,
+        TranslationRequest, TranslationResponse,
+    ],}
 
     for title, schemas in sections.items():
         print(f"\n{title}:")

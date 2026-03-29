@@ -1,14 +1,18 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, List
 import os
 from tempfile import NamedTemporaryFile
 import logging
 from contextlib import asynccontextmanager
 from core.transcriber.transcriber import Transcriber, Transcription
-from core.preprocessor.preprocessor import Preprocessor, PreprocessedResult
-
+from core.preprocessor.preprocessor import Preprocessor
+from pydantic_schemas import (
+    DirectTextInput, ProcessRequest, TranscriptionResponse,
+    PreprocessingResponse, CombinedResponse, 
+    EmailRequest, EmailResponse,
+    TextExtractionRequest, TextExtractionData, TextExtractionResponse,
+    TranslationRequest, TranslationResponse
+)
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -54,90 +58,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ============================================================================
-# REQUEST/RESPONSE MODELS
-# ============================================================================
-
-class DirectTextInput(BaseModel):
-    """Model for when user pastes text directly"""
-    name: str
-    transcription: str
-
-class ProcessRequest(BaseModel):
-    """Model for processing a transcription"""
-    id: str
-    name: str
-    transcription: str
-
-class TranscriptionResponse(BaseModel):
-    """Standardized response for transcription endpoints"""
-    status: str
-    message: str
-    data: Transcription
-
-class PreprocessingResponse(BaseModel):
-    """Standardized response for preprocessing endpoints"""
-    status: str
-    message: str
-    data: PreprocessedResult
-
-class CombinedResponse(BaseModel):
-    """Response for combined workflow"""
-    status: str
-    message: str
-    transcription: Transcription
-    preprocessed: PreprocessedResult
-
-class ErrorResponse(BaseModel):
-    """Standardized error response"""
-    status: str
-    message: str
-    detail: Optional[str] = None
-
-# ============================================================================
-# NEW TOOL REQUEST/RESPONSE MODELS
-# ============================================================================
-
-class EmailRequest(BaseModel):
-    """Model for email sending request"""
-    to: str
-    subject: str
-    processed_data: str
-    user_message: str
-    sender: str
-
-class EmailResponse(BaseModel):
-    """Response for email sending"""
-    status: str
-    message: str
-    email: str
-
-class TextExtractionRequest(BaseModel):
-    """Model for text extraction request"""
-    processed_data: str
-
-class TextExtractionData(BaseModel):
-    """Extracted keywords and keypoints"""
-    keywords: List[str]
-    keypoints: List[str]
-
-class TextExtractionResponse(BaseModel):
-    """Response for text extraction"""
-    status: str
-    message: str
-    data: TextExtractionData
-
-class TranslationRequest(BaseModel):
-    """Model for translation request"""
-    language: str
-    processed_data: str
-
-class TranslationResponse(BaseModel):
-    """Response for translation"""
-    status: str
-    message: str
-    translated_data: str
 
 # ============================================================================
 # HEALTH CHECK ENDPOINT

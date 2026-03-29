@@ -146,7 +146,7 @@ class EvaluationPipeline(Logger):
         
         try:
             preprocessor = Preprocessor()
-            result = preprocessor.preprocess(input_data)
+            preprocessor.preprocess(input_data)
             preprocessor.langfuse.flush()
             
             return f"Processing completed for {transcription_obj.name}", True
