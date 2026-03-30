@@ -11,7 +11,6 @@ class PreprocessorEvaluationResult(BaseModel):
     llm_retries: int = Field(description="Number of retries made by the LLM during processing")
     output_existence: bool = Field(description="Indicates if the output file exists after processing")
     session_integrity: bool = Field(description="Indicates if the session data remains intact after processing")
-    content_quality: float = Field(description="Quality score of the processed content")
     timestamp: datetime = Field(description="Timestamp of when the evaluation was performed")
 
 class TranscriptionInput(BaseModel):

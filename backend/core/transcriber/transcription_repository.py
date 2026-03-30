@@ -8,8 +8,8 @@ class TranscriptionRepository:
     def __init__(self, db_path=None):
         self.db_path = db_path or os.getenv(
             "DATABASE_PATH",
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), "databases")
-        )
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "databases")
+            )
 
     @observe(name="save-transcription", as_type="span")
     def save(self, audio_file, transcription_text, session_id):

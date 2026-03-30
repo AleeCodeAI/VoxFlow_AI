@@ -6,16 +6,14 @@ from pydantic_schemas import LLMParsedResponse, LLMCallError
 from langfuse.decorators import observe, langfuse_context
 from utils.color import Logger
 
-deepseek = os.getenv("DEEPSEEK_MODEL")
-gpt = os.getenv("GPT_MODEL")
-
-
 class PreprocessorLLM(Logger):
     name = "PreprocessorLLM"
     color = Logger.GREEN
 
     def __init__(self, client: OpenAI):
         self.client = client
+        self.deepseek = os.getenv("DEEPSEEK_MODEL")
+        self.gpt = os.getenv("GPT_MODEL")
 
     @observe(name="call-llm-engine", as_type="generation")
     def call(self, messages, chunk_idx=None):
@@ -36,7 +34,7 @@ class PreprocessorLLM(Logger):
         last_error = None
 
         for attempt in range(3):
-            model = deepseek if attempt == 0 else gpt
+            model = self.deepseek if attempt == 0 else self.gpt
 
             try:
                 langfuse_context.update_current_observation(model=model, input=messages)
