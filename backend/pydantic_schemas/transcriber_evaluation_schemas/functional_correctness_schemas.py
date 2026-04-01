@@ -1,13 +1,15 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+
 # ============================= Error Message Schema =============================
 class ErrorMessage(BaseModel):
-    """Represents an error encountered during transcription"""
+    """Represents an error encountered during transcription evaluation"""
     id: str = Field(description="Unique identifier for the transcription task")
     file_name: str = Field(description="Name of the audio file")
     error_message: str = Field(description="Detailed error message")
     timestamp: datetime = Field(description="Timestamp of when the error occurred")
+
 
 # ============================= Transcription Evaluation Result Schema =============================
 class TranscriptionEvaluationResult(BaseModel):
@@ -19,9 +21,15 @@ class TranscriptionEvaluationResult(BaseModel):
     transcription_completed: bool = Field(description="Whether transcription completed successfully")
     output_saved: bool = Field(description="Whether output was saved to database")
     all_chunks_processed: bool = Field(description="Whether all audio chunks were processed")
-    retry_count: int = Field(description="Number of retries attempted")
-    errors: list[ErrorMessage] = Field(description="List of errors encountered")
-    
+    retries: list = Field(description="Per-chunk retry data from TranscriptionReport", default_factory=list)
+    total_time_ms: int = Field(description="Total pipeline execution time in milliseconds", default=0)
+    errors: list[ErrorMessage] = Field(description="List of errors encountered", default_factory=list)
+
+    @property
+    def retry_count(self):
+        """Total retries across all chunks"""
+        return sum(r.retries for r in self.retries)
+
     @property
     def success(self):
         """
@@ -31,17 +39,17 @@ class TranscriptionEvaluationResult(BaseModel):
         """
         if not self.expected_valid:
             return self.input_validation_passed
-        
-        return (self.input_validation_passed and 
-                self.transcription_completed and 
-                self.output_saved and 
+
+        return (self.input_validation_passed and
+                self.transcription_completed and
+                self.output_saved and
                 self.all_chunks_processed)
-    
+
     @property
     def is_expected_rejection(self):
         """Invalid file that was correctly rejected"""
         return not self.expected_valid and self.input_validation_passed
-    
+
     @property
     def is_unexpected_failure(self):
         """
@@ -50,26 +58,27 @@ class TranscriptionEvaluationResult(BaseModel):
         """
         if not self.expected_valid:
             return not self.input_validation_passed
-        else:
-            return not self.success
+        return not self.success
 
 
+# ============================= Evaluation Summary Schema =============================
 class EvaluationSummary(BaseModel):
     """Aggregate metrics across all test cases"""
     total_files: int
     valid_files_count: int
     invalid_files_count: int
-    
+
     overall_success_rate: float
     valid_files_success_rate: float
     invalid_files_rejection_rate: float
-    
+
     input_validation_accuracy: float
     completion_rate: float
     output_save_rate: float
     chunk_processing_rate: float
     average_retries: float
-    
+    average_time_ms: float
+
     unexpected_failures: int
     expected_rejections: int
     total_errors: int

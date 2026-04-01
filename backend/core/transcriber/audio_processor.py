@@ -4,7 +4,7 @@ import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from pydantic_schemas import TranscriptionError
+from pydantic_schemas import TranscriptionError, Retries, TranscriptionReport
 from langfuse.decorators import observe, langfuse_context
 from utils.color import Logger
 
@@ -30,25 +30,29 @@ class AudioProcessor(Logger):
             chunk_data: Tuple of (chunk_index, chunk_file_path)
 
         Returns:
-            tuple: (chunk_index, transcription_text)
+            tuple: (chunk_index, transcription_text, retries_entry)
         """
         idx, chunk_file = chunk_data
         self.log(f"Transcribing chunk {idx + 1}")
 
         max_retries = 3
+        retries_count = 0
         for attempt in range(max_retries):
             try:
                 with self.lock:
                     result = self.whisper.transcribe(chunk_file, fp16=False)
 
                 transcription_text = result["text"]
-                return idx, transcription_text
+                retries_entry = Retries(chunk_no=idx + 1, retries=retries_count, success=True)
+                return idx, transcription_text, retries_entry
             except Exception as e:
                 if attempt < max_retries - 1:
+                    retries_count += 1
                     self.log(f"Retry {attempt + 1}/{max_retries - 1} for chunk {idx + 1}: {str(e)}")
                 else:
                     self.log(f"Error in chunk {idx + 1} after {max_retries} attempts: {str(e)}")
-                    raise TranscriptionError(f"Failed to transcribe chunk {idx + 1}: {str(e)}")
+                    retries_entry = Retries(chunk_no=idx + 1, retries=retries_count, success=False)
+                    raise TranscriptionError(f"Failed to transcribe chunk {idx + 1}: {str(e)}", retries_entry)
 
     @observe(name="split-audio-chunks", as_type="span")
     def split_audio_chunks(self, audio):
@@ -95,10 +99,11 @@ class AudioProcessor(Logger):
             tmpdir: Temporary directory path for chunk files
 
         Returns:
-            dict: Dictionary mapping chunk indices to transcription text
+            tuple: (transcriptions dict, TranscriptionReport)
         """
         transcriptions = {}
         chunk_files = []
+        retries_list = []
 
         for idx, chunk in enumerate(chunks):
             max_retries = 3
@@ -120,8 +125,9 @@ class AudioProcessor(Logger):
                        for chunk_data in chunk_files}
 
             for future in as_completed(futures):
-                idx, transcription_text = future.result()
+                idx, transcription_text, retries_entry = future.result()
                 transcriptions[idx] = transcription_text
+                retries_list.append(retries_entry)
                 self.log(f"Completed chunk {idx + 1}/{len(chunks)}")
 
         langfuse_context.update_current_observation(
@@ -131,4 +137,10 @@ class AudioProcessor(Logger):
             }
         )
 
-        return transcriptions
+        report = TranscriptionReport(
+            retries=retries_list,
+            total_chunks=len(chunks),
+            chunks_completed=len(transcriptions)
+        )
+
+        return transcriptions, report

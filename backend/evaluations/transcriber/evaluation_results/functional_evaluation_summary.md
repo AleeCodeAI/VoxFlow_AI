@@ -1,6 +1,6 @@
-# Transcription Evaluation Summary
+# Transcription Functional Evaluation Summary
 
-**Generated:** 2026-01-22 21:51:15
+**Generated:** 2026-04-01 22:14:22
 
 ## Overview
 
@@ -39,6 +39,7 @@
 
 - **Total Errors:** 2
 - **Average Retries per File:** 0.00
+- **Average Execution Time:** 47645ms
 
 ## Status
 

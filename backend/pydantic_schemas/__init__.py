@@ -1,5 +1,5 @@
 # ======================== SCHEMAS FOR CORE ============================
-from .transcriber_schemas import Transcription, TranscriptionError
+from .transcriber_schemas import Transcription, TranscriptionError, TranscriptionReport, Retries
 from .preprocessor_schemas import (PreprocessedResult, 
                                    LLMParsedResponse,
                                    PreprocessorError,
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     sections = {
     "Transcriber Schemas": [
-        Transcription, TranscriptionError,
+        Transcription, TranscriptionError, TranscriptionReport, Retries
     ],
     "Preprocessor Schemas": [
         PreprocessedResult, LLMParsedResponse,

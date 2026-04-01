@@ -1,5 +1,8 @@
+# transcriber.py
+
 import os
 import uuid
+import time
 import logging
 from tempfile import TemporaryDirectory
 
@@ -55,8 +58,10 @@ class Transcriber(Logger):
             audio_file: Path to the audio file to transcribe
 
         Returns:
-            Transcription: The final transcription object saved to database
+            tuple: (Transcription, TranscriptionReport)
         """
+        start_time = time.time()
+
         valid_formats = ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.opus', '.wma', '.aac', '.webm']
         file_ext = os.path.splitext(audio_file)[1].lower()
 
@@ -82,7 +87,7 @@ class Transcriber(Logger):
         chunks = self.audio_processor.split_audio_chunks(audio)
 
         with TemporaryDirectory() as tmpdir:
-            transcriptions = self.audio_processor.process_chunks_parallel(chunks, tmpdir)
+            transcriptions, report = self.audio_processor.process_chunks_parallel(chunks, tmpdir)
 
         final_text = " ".join([transcriptions.get(i, "") for i in range(len(chunks))])
 
@@ -91,14 +96,16 @@ class Transcriber(Logger):
 
         self.observability.score_success()
 
-        return result
+        report.total_time_ms = round((time.time() - start_time) * 1000)
+
+        return result, report
 
 
 if __name__ == "__main__":
     transcriber = Transcriber()
 
     try:
-        result_obj = transcriber.transcribe("test3.mp3")
+        result_obj, report = transcriber.transcribe(r"D:\Projects\audio_preprocessor\backend\evaluations\test_data\transcriber\valids\test3.wav")
         print("\n" + "="*40)
         print("FINAL TRANSCRIPTION OBJECT")
         print("="*40)
