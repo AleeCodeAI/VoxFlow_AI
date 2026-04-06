@@ -8,19 +8,20 @@ sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
 
 from core.transcriber.transcriber import Transcriber
 from utils.color import Logger
-from pydantic_schemas import TranscriptionEvaluationResult, EvaluationSummary, ErrorMessage
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(message)s'
+from pydantic_schemas import (
+    TranscriptionEvaluationResult,
+    EvaluationSummary,
+    ErrorMessage,
 )
 
-EVAL_DIR      = Path(__file__).parent.parent.parent
-BACKEND_ROOT  = EVAL_DIR.parent.parent
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-RESULTS_FILE  = EVAL_DIR / "evaluation_databases" / "functional_evaluation_results.jsonl"
-SUMMARY_FILE  = EVAL_DIR / "evaluation_results" / "functional_evaluation_summary.md"
-DB_FILE       = BACKEND_ROOT / "databases" / "transcriptions.jsonl"
+EVAL_DIR = Path(__file__).parent.parent.parent
+BACKEND_ROOT = EVAL_DIR.parent.parent
+
+RESULTS_FILE = EVAL_DIR / "evaluation_databases" / "functional_evaluation_results.jsonl"
+SUMMARY_FILE = EVAL_DIR / "evaluation_results" / "functional_evaluation_summary.md"
+DB_FILE = BACKEND_ROOT / "databases" / "transcriptions.jsonl"
 TEST_DATA_DIR = EVAL_DIR.parent / "test_data" / "transcriber"
 
 
@@ -32,10 +33,16 @@ class TranscriptionFunctionalEvaluator(Logger):
         self.transcriber = Transcriber()
 
     def load_test_files(self):
-        valid_files   = [(f, True)  for f in (TEST_DATA_DIR / "valids").glob("*")   if f.is_file()]
-        invalid_files = [(f, False) for f in (TEST_DATA_DIR / "invalids").glob("*") if f.is_file()]
+        valid_files = [
+            (f, True) for f in (TEST_DATA_DIR / "valids").glob("*") if f.is_file()
+        ]
+        invalid_files = [
+            (f, False) for f in (TEST_DATA_DIR / "invalids").glob("*") if f.is_file()
+        ]
 
-        self.log(f"Loaded {len(valid_files)} valid and {len(invalid_files)} invalid test files")
+        self.log(
+            f"Loaded {len(valid_files)} valid and {len(invalid_files)} invalid test files"
+        )
         return valid_files + invalid_files
 
     def check_input_validation(self, expected_valid, errors):
@@ -50,12 +57,16 @@ class TranscriptionFunctionalEvaluator(Logger):
             return False
 
         import json
-        with open(DB_FILE, 'r', encoding='utf-8') as db_file:
+
+        with open(DB_FILE, "r", encoding="utf-8") as db_file:
             for line in db_file:
                 if transcription_id in line:
                     try:
                         entry = json.loads(line)
-                        return all(field in entry for field in ("id", "name", "transcription", "timestamp"))
+                        return all(
+                            field in entry
+                            for field in ("id", "name", "transcription", "timestamp")
+                        )
                     except json.JSONDecodeError:
                         return False
         return False
@@ -63,25 +74,28 @@ class TranscriptionFunctionalEvaluator(Logger):
     def process_single_file(self, file_path, expected_valid):
         self.log(f"Testing {file_path.name} (expected_valid={expected_valid})")
 
-        task_id     = str(uuid.uuid4())
-        errors      = []
-        result      = None
-        report      = None
+        task_id = str(uuid.uuid4())
+        errors = []
+        result = None
+        report = None
 
         try:
             result, report = self.transcriber.transcribe(str(file_path))
             self.log(f"Transcription completed for {file_path.name}")
         except Exception as exc:
-            errors.append(ErrorMessage(
-                id=task_id,
-                file_name=file_path.name,
-                error_message=str(exc),
-                timestamp=datetime.now()
-            ))
+            errors.append(
+                ErrorMessage(
+                    id=task_id,
+                    file_name=file_path.name,
+                    error_message=str(exc),
+                    timestamp=datetime.now(),
+                )
+            )
 
         all_chunks_processed = (
             report.chunks_completed == report.total_chunks
-            if report else expected_valid is False
+            if report
+            else expected_valid is False
         )
 
         eval_result = TranscriptionEvaluationResult(
@@ -94,12 +108,14 @@ class TranscriptionFunctionalEvaluator(Logger):
             all_chunks_processed=all_chunks_processed,
             retries=report.retries if report else [],
             total_time_ms=report.total_time_ms if report else 0,
-            errors=errors
+            errors=errors,
         )
 
         if eval_result.success:
             if eval_result.is_expected_rejection:
-                self.log(f"Result for {file_path.name}: EXPECTED REJECTION (correctly rejected invalid file)")
+                self.log(
+                    f"Result for {file_path.name}: EXPECTED REJECTION (correctly rejected invalid file)"
+                )
             else:
                 self.log(f"Result for {file_path.name}: SUCCESS")
         else:
@@ -108,34 +124,40 @@ class TranscriptionFunctionalEvaluator(Logger):
         return eval_result
 
     def generate_summary(self, results):
-        total           = len(results)
-        valid_results   = [r for r in results if r.expected_valid]
+        total = len(results)
+        valid_results = [r for r in results if r.expected_valid]
         invalid_results = [r for r in results if not r.expected_valid]
-        valid_count     = len(valid_results)
-        invalid_count   = len(invalid_results)
+        valid_count = len(valid_results)
+        invalid_count = len(invalid_results)
 
-        overall_successes       = sum(1 for r in results if r.success)
-        valid_successes         = sum(1 for r in valid_results if r.success)
-        invalid_rejections      = sum(1 for r in invalid_results if r.success)
+        overall_successes = sum(1 for r in results if r.success)
+        valid_successes = sum(1 for r in valid_results if r.success)
+        invalid_rejections = sum(1 for r in invalid_results if r.success)
         input_validation_correct = sum(1 for r in results if r.input_validation_passed)
-        completed               = sum(1 for r in valid_results if r.transcription_completed)
-        saved                   = sum(1 for r in valid_results if r.output_saved)
-        chunks_ok               = sum(1 for r in valid_results if r.all_chunks_processed)
+        completed = sum(1 for r in valid_results if r.transcription_completed)
+        saved = sum(1 for r in valid_results if r.output_saved)
+        chunks_ok = sum(1 for r in valid_results if r.all_chunks_processed)
 
-        total_retries       = sum(r.retry_count for r in results)
-        total_time          = sum(r.total_time_ms for r in valid_results)
+        total_retries = sum(r.retry_count for r in results)
+        total_time = sum(r.total_time_ms for r in valid_results)
         unexpected_failures = sum(1 for r in results if r.is_unexpected_failure)
         expected_rejections = sum(1 for r in results if r.is_expected_rejection)
-        total_errors        = sum(len(r.errors) for r in results)
+        total_errors = sum(len(r.errors) for r in results)
 
         summary = EvaluationSummary(
             total_files=total,
             valid_files_count=valid_count,
             invalid_files_count=invalid_count,
             overall_success_rate=overall_successes / total if total > 0 else 0,
-            valid_files_success_rate=valid_successes / valid_count if valid_count > 0 else 0,
-            invalid_files_rejection_rate=invalid_rejections / invalid_count if invalid_count > 0 else 0,
-            input_validation_accuracy=input_validation_correct / total if total > 0 else 0,
+            valid_files_success_rate=valid_successes / valid_count
+            if valid_count > 0
+            else 0,
+            invalid_files_rejection_rate=invalid_rejections / invalid_count
+            if invalid_count > 0
+            else 0,
+            input_validation_accuracy=input_validation_correct / total
+            if total > 0
+            else 0,
             completion_rate=completed / valid_count if valid_count > 0 else 0,
             output_save_rate=saved / valid_count if valid_count > 0 else 0,
             chunk_processing_rate=chunks_ok / valid_count if valid_count > 0 else 0,
@@ -144,10 +166,12 @@ class TranscriptionFunctionalEvaluator(Logger):
             unexpected_failures=unexpected_failures,
             expected_rejections=expected_rejections,
             total_errors=total_errors,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
-        self.log(f"Summary: {overall_successes}/{total} overall success, {unexpected_failures} unexpected failures, {expected_rejections} expected rejections")
+        self.log(
+            f"Summary: {overall_successes}/{total} overall success, {unexpected_failures} unexpected failures, {expected_rejections} expected rejections"
+        )
         return summary
 
     def save_results(self, results):
@@ -162,13 +186,13 @@ class TranscriptionFunctionalEvaluator(Logger):
     def save_summary(self, summary):
         self.log(f"Generating summary report at {SUMMARY_FILE}")
 
-        total    = summary.total_files
-        valid_n  = summary.valid_files_count
+        total = summary.total_files
+        valid_n = summary.valid_files_count
         invalid_n = summary.invalid_files_count
 
         markdown = f"""# Transcription Functional Evaluation Summary
 
-**Generated:** {summary.timestamp.strftime('%Y-%m-%d %H:%M:%S')}
+**Generated:** {summary.timestamp.strftime("%Y-%m-%d %H:%M:%S")}
 
 ## Overview
 
@@ -211,7 +235,7 @@ class TranscriptionFunctionalEvaluator(Logger):
 
 ## Status
 
-{'✓ All tests passed successfully' if summary.unexpected_failures == 0 else f'✗ {summary.unexpected_failures} unexpected failure(s) detected'}
+{"✓ All tests passed successfully" if summary.unexpected_failures == 0 else f"✗ {summary.unexpected_failures} unexpected failure(s) detected"}
 """
 
         with open(SUMMARY_FILE, "w", encoding="utf-8") as f:

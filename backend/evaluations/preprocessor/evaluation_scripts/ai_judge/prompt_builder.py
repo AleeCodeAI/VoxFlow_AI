@@ -13,7 +13,7 @@ class PromptBuilder:
         system_message = {"role": "system", "content": self.system_prompt}
         user_content = self.user_prompt.format(
             transcription=transcription,
-            preprocessed_transcription=preprocessed_transcription
+            preprocessed_transcription=preprocessed_transcription,
         )
         user_message = {"role": "user", "content": user_content}
         return [system_message, user_message]

@@ -11,15 +11,16 @@ class PreprocessorLLM(Logger):
     color = Logger.GREEN
 
     def __init__(self, client: OpenAI):
+        self.retries = 0
         self.client = client
-        self.deepseek = os.getenv("DEEPSEEK_MODEL")
+        self.gemini = os.getenv("GEMINI_MODEL")
         self.gpt = os.getenv("GPT_MODEL")
 
     @observe(name="call-llm-engine", as_type="generation")
     def call(self, messages, chunk_idx=None):
         """
         Call the LLM to clean transcription text with structured output parsing.
-        Tries deepseek first, then falls back to GPT for 2 retries.
+        Tries GPT first, then falls back to Gemini for 2 retries.
 
         Args:
             messages: Array of message objects for the LLM
@@ -34,7 +35,7 @@ class PreprocessorLLM(Logger):
         last_error = None
 
         for attempt in range(3):
-            model = self.deepseek if attempt == 0 else self.gpt
+            model = self.gpt if attempt == 0 else self.gemini
 
             try:
                 langfuse_context.update_current_observation(model=model, input=messages)
@@ -82,6 +83,7 @@ class PreprocessorLLM(Logger):
                 return content
 
             except Exception as e:
+                self.retries += 1
                 self.log(f"Attempt {attempt + 1}/3 failed with {model}: {str(e)}")
                 last_error = e
 

@@ -6,12 +6,11 @@ from langfuse.decorators import langfuse_context
 
 
 class PreprocessorObservability:
-
     def __init__(self):
         self.langfuse = Langfuse(
             secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
             public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-            host=os.getenv("LANGFUSE_HOST")
+            host=os.getenv("LANGFUSE_HOST"),
         )
 
     def update_trace(self, session_id, audio_name, transcription_length, chunk_size):
@@ -21,8 +20,8 @@ class PreprocessorObservability:
             metadata={
                 "audio_name": audio_name,
                 "transcription_length": transcription_length,
-                "chunk_size": chunk_size
-            }
+                "chunk_size": chunk_size,
+            },
         )
 
     def score_success(self, comment="Successfully completed preprocessing"):
@@ -30,7 +29,7 @@ class PreprocessorObservability:
             trace_id=langfuse_context.get_current_trace_id(),
             name="preprocessing-success",
             value=1,
-            comment=comment
+            comment=comment,
         )
 
     def score_failure(self, reason: str):
@@ -38,7 +37,7 @@ class PreprocessorObservability:
             trace_id=langfuse_context.get_current_trace_id(),
             name="preprocessing-failure",
             value=0,
-            comment=reason
+            comment=reason,
         )
 
     def flush(self):

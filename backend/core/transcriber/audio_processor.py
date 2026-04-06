@@ -43,16 +43,26 @@ class AudioProcessor(Logger):
                     result = self.whisper.transcribe(chunk_file, fp16=False)
 
                 transcription_text = result["text"]
-                retries_entry = Retries(chunk_no=idx + 1, retries=retries_count, success=True)
+                retries_entry = Retries(
+                    chunk_no=idx + 1, retries=retries_count, success=True
+                )
                 return idx, transcription_text, retries_entry
             except Exception as e:
                 if attempt < max_retries - 1:
                     retries_count += 1
-                    self.log(f"Retry {attempt + 1}/{max_retries - 1} for chunk {idx + 1}: {str(e)}")
+                    self.log(
+                        f"Retry {attempt + 1}/{max_retries - 1} for chunk {idx + 1}: {str(e)}"
+                    )
                 else:
-                    self.log(f"Error in chunk {idx + 1} after {max_retries} attempts: {str(e)}")
-                    retries_entry = Retries(chunk_no=idx + 1, retries=retries_count, success=False)
-                    raise TranscriptionError(f"Failed to transcribe chunk {idx + 1}: {str(e)}", retries_entry)
+                    self.log(
+                        f"Error in chunk {idx + 1} after {max_retries} attempts: {str(e)}"
+                    )
+                    retries_entry = Retries(
+                        chunk_no=idx + 1, retries=retries_count, success=False
+                    )
+                    raise TranscriptionError(
+                        f"Failed to transcribe chunk {idx + 1}: {str(e)}", retries_entry
+                    )
 
     @observe(name="split-audio-chunks", as_type="span")
     def split_audio_chunks(self, audio):
@@ -66,8 +76,10 @@ class AudioProcessor(Logger):
         Returns:
             list: List of AudioSegment chunks ready for transcription
         """
-        raw_chunks = [audio[i:i + self.chunk_length_ms]
-                      for i in range(0, len(audio), self.chunk_length_ms)]
+        raw_chunks = [
+            audio[i : i + self.chunk_length_ms]
+            for i in range(0, len(audio), self.chunk_length_ms)
+        ]
 
         chunks = []
         for chunk in raw_chunks:
@@ -83,7 +95,7 @@ class AudioProcessor(Logger):
             metadata={
                 "total_chunks": len(chunks),
                 "chunk_length_ms": self.chunk_length_ms,
-                "audio_duration_ms": len(audio)
+                "audio_duration_ms": len(audio),
             }
         )
 
@@ -115,14 +127,22 @@ class AudioProcessor(Logger):
                     break
                 except Exception as e:
                     if attempt < max_retries - 1:
-                        self.log(f"Retry {attempt + 1}/{max_retries - 1} exporting chunk {idx}: {str(e)}")
+                        self.log(
+                            f"Retry {attempt + 1}/{max_retries - 1} exporting chunk {idx}: {str(e)}"
+                        )
                     else:
-                        self.log(f"Error exporting chunk {idx} after {max_retries} attempts: {str(e)}")
-                        raise TranscriptionError(f"Failed to export chunk {idx}: {str(e)}")
+                        self.log(
+                            f"Error exporting chunk {idx} after {max_retries} attempts: {str(e)}"
+                        )
+                        raise TranscriptionError(
+                            f"Failed to export chunk {idx}: {str(e)}"
+                        )
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = {executor.submit(self.transcribe_chunk, chunk_data): chunk_data
-                       for chunk_data in chunk_files}
+            futures = {
+                executor.submit(self.transcribe_chunk, chunk_data): chunk_data
+                for chunk_data in chunk_files
+            }
 
             for future in as_completed(futures):
                 idx, transcription_text, retries_entry = future.result()
@@ -133,14 +153,14 @@ class AudioProcessor(Logger):
         langfuse_context.update_current_observation(
             metadata={
                 "total_chunks_processed": len(transcriptions),
-                "max_workers": self.max_workers
+                "max_workers": self.max_workers,
             }
         )
 
         report = TranscriptionReport(
             retries=retries_list,
             total_chunks=len(chunks),
-            chunks_completed=len(transcriptions)
+            chunks_completed=len(transcriptions),
         )
 
         return transcriptions, report

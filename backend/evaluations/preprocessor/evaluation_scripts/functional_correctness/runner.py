@@ -23,7 +23,7 @@ class Runner:
             preprocessor.preprocess(input_data)
             preprocessor.observability.flush()
 
-            return f"Processing completed for {transcription_obj.name}", True
+            return preprocessor.report, True
 
         except Exception as e:
             return f"ERROR: {str(e)}", False

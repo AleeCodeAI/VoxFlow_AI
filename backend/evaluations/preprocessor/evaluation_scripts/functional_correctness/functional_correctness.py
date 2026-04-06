@@ -79,9 +79,9 @@ class EvaluationPipeline(Logger):
         """
         self.log(f"Evaluating {transcription_obj.name} (ID: {transcription_obj.id})")
 
-        logs, success = self.runner.run_preprocessor(transcription_obj)
+        report, success = self.runner.run_preprocessor(transcription_obj)
 
-        metrics = self.metrics.parse_logs(logs)
+        metrics = self.metrics.parse_logs(report)
 
         output_exists, _ = self.verifier.verify_output_file(transcription_obj.id)
 
@@ -101,7 +101,7 @@ class EvaluationPipeline(Logger):
 
         return result
 
-    def run(self):
+    def evaluate(self):
         """
         Execute the complete evaluation pipeline.
         """
@@ -126,4 +126,4 @@ class EvaluationPipeline(Logger):
 
 if __name__ == "__main__":
     pipeline = EvaluationPipeline()
-    pipeline.run()
+    pipeline.evaluate()

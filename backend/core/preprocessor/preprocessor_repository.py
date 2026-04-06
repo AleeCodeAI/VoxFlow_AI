@@ -14,8 +14,10 @@ class PreprocessedRepository(Logger):
     def __init__(self, db_path=None):
         self.db_path = db_path or os.getenv(
             "DATABASE_PATH",
-            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "databases")
-            )
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "databases"
+            ),
+        )
 
     @observe(name="save-preprocessed", as_type="span")
     def save(self, session_id, audio_name, clean_text):
@@ -41,11 +43,11 @@ class PreprocessedRepository(Logger):
                 id=session_id,
                 name=audio_name,
                 preprocessed_transcription=clean_text,
-                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )
 
-            with open(jsonl_file, 'a', encoding='utf-8') as f:
-                f.write(result_obj.model_dump_json() + '\n')
+            with open(jsonl_file, "a", encoding="utf-8") as f:
+                f.write(result_obj.model_dump_json() + "\n")
                 f.flush()
                 os.fsync(f.fileno())
 
@@ -57,7 +59,8 @@ class PreprocessedRepository(Logger):
             error_msg = f"Failed to save preprocessed data for {audio_name}: {str(e)}"
             self.log(error_msg)
             raise DatabaseError(error_msg) from e
-        
+
+
 if __name__ == "__main__":
     repo = PreprocessedRepository()
     print(repo.db_path)

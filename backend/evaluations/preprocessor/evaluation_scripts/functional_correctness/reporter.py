@@ -1,5 +1,7 @@
 from datetime import datetime
-from evaluations.preprocessor.evaluation_scripts.functional_correctness.metrics import Metrics
+from evaluations.preprocessor.evaluation_scripts.functional_correctness.metrics import (
+    Metrics,
+)
 
 
 class Reporter:
@@ -26,7 +28,7 @@ class Reporter:
 
         summary = f"""# Preprocessor Evaluation Summary
 
-    **Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    **Generated:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
     ---
 
@@ -37,7 +39,7 @@ class Reporter:
     | Total Executions | {total} |
     | Successful | {successful} |
     | Failed | {failed} |
-    | Success Rate | {(successful/total*100):.2f}% |
+    | Success Rate | {(successful / total * 100):.2f}% |
 
     ---
 
@@ -46,8 +48,8 @@ class Reporter:
     | Metric | Average |
     |--------|---------|
     | LLM Retries | {avg_retries:.2f} |
-    | Chunk Completeness Rate | {(chunk_complete_count/total*100):.2f}% |
-    | Output Existence Rate | {(output_exists_count/total*100):.2f}% |
+    | Chunk Completeness Rate | {(chunk_complete_count / total * 100):.2f}% |
+    | Output Existence Rate | {(output_exists_count / total * 100):.2f}% |
 
     ---
 
@@ -70,8 +72,8 @@ class Reporter:
     ## Key Insights
 
     - **Average LLM Retries:** {avg_retries:.2f} retries per execution
-    - **Reliability:** {(chunk_complete_count/total*100):.1f}% of executions completed all chunks
-    - **Data Persistence:** {(output_exists_count/total*100):.1f}% of outputs were successfully saved
+    - **Reliability:** {(chunk_complete_count / total * 100):.1f}% of executions completed all chunks
+    - **Data Persistence:** {(output_exists_count / total * 100):.1f}% of outputs were successfully saved
 
     ---
 
@@ -91,5 +93,5 @@ class Reporter:
         else:
             summary += "No failures detected. All executions completed successfully.\n"
 
-        with open(self.summary_file, 'w', encoding='utf-8') as f:
+        with open(self.summary_file, "w", encoding="utf-8") as f:
             f.write(summary)

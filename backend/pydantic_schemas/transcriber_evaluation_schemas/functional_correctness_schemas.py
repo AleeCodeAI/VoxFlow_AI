@@ -5,6 +5,7 @@ from datetime import datetime
 # ============================= Error Message Schema =============================
 class ErrorMessage(BaseModel):
     """Represents an error encountered during transcription evaluation"""
+
     id: str = Field(description="Unique identifier for the transcription task")
     file_name: str = Field(description="Name of the audio file")
     error_message: str = Field(description="Detailed error message")
@@ -14,16 +15,32 @@ class ErrorMessage(BaseModel):
 # ============================= Transcription Evaluation Result Schema =============================
 class TranscriptionEvaluationResult(BaseModel):
     """Evaluation result for a single test file"""
+
     id: str = Field(description="Unique identifier for the transcription task")
     file_name: str = Field(description="Name of the audio file")
-    expected_valid: bool = Field(description="Whether the file was expected to be valid")
-    input_validation_passed: bool = Field(description="Whether input validation behaved correctly")
-    transcription_completed: bool = Field(description="Whether transcription completed successfully")
+    expected_valid: bool = Field(
+        description="Whether the file was expected to be valid"
+    )
+    input_validation_passed: bool = Field(
+        description="Whether input validation behaved correctly"
+    )
+    transcription_completed: bool = Field(
+        description="Whether transcription completed successfully"
+    )
     output_saved: bool = Field(description="Whether output was saved to database")
-    all_chunks_processed: bool = Field(description="Whether all audio chunks were processed")
-    retries: list = Field(description="Per-chunk retry data from TranscriptionReport", default_factory=list)
-    total_time_ms: int = Field(description="Total pipeline execution time in milliseconds", default=0)
-    errors: list[ErrorMessage] = Field(description="List of errors encountered", default_factory=list)
+    all_chunks_processed: bool = Field(
+        description="Whether all audio chunks were processed"
+    )
+    retries: list = Field(
+        description="Per-chunk retry data from TranscriptionReport",
+        default_factory=list,
+    )
+    total_time_ms: int = Field(
+        description="Total pipeline execution time in milliseconds", default=0
+    )
+    errors: list[ErrorMessage] = Field(
+        description="List of errors encountered", default_factory=list
+    )
 
     @property
     def retry_count(self):
@@ -40,10 +57,12 @@ class TranscriptionEvaluationResult(BaseModel):
         if not self.expected_valid:
             return self.input_validation_passed
 
-        return (self.input_validation_passed and
-                self.transcription_completed and
-                self.output_saved and
-                self.all_chunks_processed)
+        return (
+            self.input_validation_passed
+            and self.transcription_completed
+            and self.output_saved
+            and self.all_chunks_processed
+        )
 
     @property
     def is_expected_rejection(self):
@@ -64,6 +83,7 @@ class TranscriptionEvaluationResult(BaseModel):
 # ============================= Evaluation Summary Schema =============================
 class EvaluationSummary(BaseModel):
     """Aggregate metrics across all test cases"""
+
     total_files: int
     valid_files_count: int
     invalid_files_count: int

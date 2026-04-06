@@ -3,13 +3,15 @@ from datetime import datetime
 from pydantic_schemas import Transcription
 from langfuse.decorators import observe
 
-class TranscriptionRepository:
 
+class TranscriptionRepository:
     def __init__(self, db_path=None):
         self.db_path = db_path or os.getenv(
             "DATABASE_PATH",
-            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "databases")
-            )
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "databases"
+            ),
+        )
 
     @observe(name="save-transcription", as_type="span")
     def save(self, audio_file, transcription_text, session_id):
@@ -31,11 +33,11 @@ class TranscriptionRepository:
             id=session_id,
             name=os.path.basename(audio_file),
             transcription=transcription_text,
-            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         )
 
-        with open(jsonl_file, 'a', encoding='utf-8') as f:
-            f.write(transcription_obj.model_dump_json() + '\n')
+        with open(jsonl_file, "a", encoding="utf-8") as f:
+            f.write(transcription_obj.model_dump_json() + "\n")
             f.flush()
             os.fsync(f.fileno())
 

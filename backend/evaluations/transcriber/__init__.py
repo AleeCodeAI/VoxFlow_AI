@@ -1,1 +1,2 @@
 from .evaluation_scripts.functional_correctness.functional_correctness import TranscriptionFunctionalEvaluator
+from .evaluation_scripts.lexical_similarity.lexical_similarity import LexicalEvaluator

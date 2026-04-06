@@ -18,10 +18,7 @@ from core.transcriber.audio_processor import AudioProcessor
 from core.transcriber.transcription_repository import TranscriptionRepository
 from core.transcriber.observability import ObservabilityManager
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 load_dotenv(override=True)
 
@@ -40,12 +37,14 @@ class Transcriber(Logger):
         self.audio_processor = AudioProcessor(
             whisper_model=self.whisper,
             chunk_length_ms=self.chunk_length_ms,
-            max_workers=self.max_workers
+            max_workers=self.max_workers,
         )
         self.repository = TranscriptionRepository()
         self.observability = ObservabilityManager()
 
-        self.log(f"Loaded Whisper model '{MODEL}', workers: {self.max_workers}, chunk length: {self.chunk_length_ms}ms")
+        self.log(
+            f"Loaded Whisper model '{MODEL}', workers: {self.max_workers}, chunk length: {self.chunk_length_ms}ms"
+        )
 
     @observe(name="audio-transcription")
     def transcribe(self, audio_file):
@@ -62,14 +61,26 @@ class Transcriber(Logger):
         """
         start_time = time.time()
 
-        valid_formats = ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.opus', '.wma', '.aac', '.webm']
+        valid_formats = [
+            ".mp3",
+            ".wav",
+            ".m4a",
+            ".flac",
+            ".ogg",
+            ".opus",
+            ".wma",
+            ".aac",
+            ".webm",
+        ]
         file_ext = os.path.splitext(audio_file)[1].lower()
 
         if not os.path.exists(audio_file):
             raise TranscriptionError(f"Audio file not found: {audio_file}")
 
         if file_ext not in valid_formats:
-            raise TranscriptionError(f"Invalid file format '{file_ext}'. Supported formats: {', '.join(valid_formats)}")
+            raise TranscriptionError(
+                f"Invalid file format '{file_ext}'. Supported formats: {', '.join(valid_formats)}"
+            )
 
         session_id = str(uuid.uuid4())
 
@@ -78,7 +89,7 @@ class Transcriber(Logger):
             audio_file=audio_file,
             model=MODEL,
             chunk_length_ms=self.chunk_length_ms,
-            max_workers=self.max_workers
+            max_workers=self.max_workers,
         )
 
         self.log(f"Loading audio file: {audio_file}")
@@ -87,7 +98,9 @@ class Transcriber(Logger):
         chunks = self.audio_processor.split_audio_chunks(audio)
 
         with TemporaryDirectory() as tmpdir:
-            transcriptions, report = self.audio_processor.process_chunks_parallel(chunks, tmpdir)
+            transcriptions, report = self.audio_processor.process_chunks_parallel(
+                chunks, tmpdir
+            )
 
         final_text = " ".join([transcriptions.get(i, "") for i in range(len(chunks))])
 
@@ -105,10 +118,12 @@ if __name__ == "__main__":
     transcriber = Transcriber()
 
     try:
-        result_obj, report = transcriber.transcribe(r"D:\Projects\audio_preprocessor\backend\evaluations\test_data\transcriber\valids\test3.wav")
-        print("\n" + "="*40)
+        result_obj, report = transcriber.transcribe(
+            r"D:\Projects\audio_preprocessor\backend\evaluations\test_data\transcriber\valids\test3.wav"
+        )
+        print("\n" + "=" * 40)
         print("FINAL TRANSCRIPTION OBJECT")
-        print("="*40)
+        print("=" * 40)
         print(f"ID: {result_obj.id}")
         print(f"File: {result_obj.name}")
         print(f"Transcription: {result_obj.transcription[:200]}...")

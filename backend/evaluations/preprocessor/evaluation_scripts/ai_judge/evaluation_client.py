@@ -31,7 +31,7 @@ class EvaluationClient:
                     messages=messages,
                     temperature=0.2,
                     top_p=0.93,
-                    response_format=AIResult
+                    response_format=AIResult,
                 )
                 return response.choices[0].message.parsed
 
@@ -44,6 +44,6 @@ class EvaluationClient:
             error_type="LLMCallError",
             message=str(last_exception),
             timestamp=datetime.now().isoformat(),
-            context={"model": self.model, "attempts": MAX_RETRIES}
+            context={"model": self.model, "attempts": MAX_RETRIES},
         )
         raise Exception(error.model_dump_json())

@@ -6,10 +6,15 @@ from dotenv import load_dotenv
 from utils.color import Logger
 from langfuse.decorators import observe
 
-from pydantic_schemas import PreprocessorError, LLMCallError, DatabaseError
+from pydantic_schemas import (PreprocessorError, 
+                              LLMCallError, 
+                              DatabaseError, 
+                              PreprocessorReport)
+
 from core.preprocessor.preprocessor_repository import PreprocessedRepository
 from core.preprocessor.preprocessor_llm import PreprocessorLLM
 from core.preprocessor.preprocessor_observability import PreprocessorObservability
+
 from prompts import (
     PREPROCESSOR_SYSTEM_PROMPT,
     PREPROCESSOR_USER_PROMPT_NO_CONTEXT,
@@ -45,6 +50,9 @@ class Preprocessor(Logger):
             self.system_prompt = PREPROCESSOR_SYSTEM_PROMPT
             self.user_prompt_with_context = PREPROCESSOR_USER_PROMPT_WITH_CONTEXT
             self.user_prompt_no_context = PREPROCESSOR_USER_PROMPT_NO_CONTEXT
+
+            self.chunk_count = 0
+            self.chunks_processed = 0
 
             self.log("Initialized Preprocessor")
         except Exception as e:
@@ -107,6 +115,7 @@ class Preprocessor(Logger):
             chunks.append(" ".join(current_chunk))
 
         self.log(f"Split transcription into {len(chunks)} chunks")
+        self.chunk_count = len(chunks) 
         return chunks
 
     @observe(name="audio-preprocessing")
@@ -163,13 +172,23 @@ class Preprocessor(Logger):
                         self.make_messages(previous_preprocessed, chunk),
                         chunk_idx=idx + 1,
                     )
+                    self.chunks_processed += 1
                     preprocessed_chunks.append(current_clean)
                     previous_preprocessed = current_clean
 
                 final_combined_text = " ".join(preprocessed_chunks)
 
-            result = self.repository.save(session_id, audio_name, final_combined_text)
+            result = self.repository.save(session_id, 
+                                          audio_name, 
+                                          final_combined_text)
+            
             self.observability.score_success()
+
+            self.report = PreprocessorReport(  
+                            chunk_count=self.chunk_count,
+                            chunks_processed=self.chunks_processed,
+                            llm_retries=self.llm.retries)
+            
             return result
 
         except (LLMCallError, DatabaseError) as e:

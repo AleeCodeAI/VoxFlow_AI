@@ -17,6 +17,6 @@ class Storage:
                 error_type="ExecutionSaveError",
                 message=str(e),
                 timestamp=datetime.now().isoformat(),
-                context={"result_id": result.id, "file_path": self.execution_path}
+                context={"result_id": result.id, "file_path": self.execution_path},
             )
             raise Exception(error.model_dump_json())
