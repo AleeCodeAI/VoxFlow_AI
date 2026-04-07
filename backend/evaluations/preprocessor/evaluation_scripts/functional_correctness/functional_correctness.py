@@ -81,7 +81,7 @@ class EvaluationPipeline(Logger):
 
         report, success = self.runner.run_preprocessor(transcription_obj)
 
-        metrics = self.metrics.parse_logs(report)
+        metrics = self.metrics.parse_report(report)
 
         output_exists, _ = self.verifier.verify_output_file(transcription_obj.id)
 

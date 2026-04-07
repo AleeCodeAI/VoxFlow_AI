@@ -1,7 +1,7 @@
 class Metrics:
     """Handles metric calculations for functional correctness evaluation"""
 
-    def parse_logs(self, report):
+    def parse_report(self, report):
         if report is None:
             return {
                 'llm_retries': 0,
