@@ -228,14 +228,6 @@ d:\Projects\audio_preprocessor\backend\evaluations\
 
 The evaluation pipeline demonstrates a **robust, reliable, and interpretable** audio preprocessing system. By combining **functional correctness tests** with **AI-as-judge reasoning**, VoxFlow AI ensures both **technical stability** and **high-quality semantic output**.
 
----
 
-This version now:
-
-* Includes **all about_evals.md references**.
-* Clearly defines **purpose, metrics, and success** for each evaluation.
-* Adds **runner.py GUI explanation**.
-* Integrates the **evaluation flow diagram**.
-* Removes implementation details while keeping it **comprehensive and professional**.
 
 
