@@ -1,5 +1,3 @@
-# preprocessed_repository.py
-
 import os
 from datetime import datetime
 from pydantic_schemas import PreprocessedResult, DatabaseError

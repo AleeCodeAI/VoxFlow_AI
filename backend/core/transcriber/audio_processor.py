@@ -1,5 +1,3 @@
-# audio_processor.py
-
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed

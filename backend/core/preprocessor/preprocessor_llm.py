@@ -1,5 +1,3 @@
-# preprocessor_llm.py
-
 import os
 from openai import OpenAI
 from pydantic_schemas import LLMParsedResponse, LLMCallError

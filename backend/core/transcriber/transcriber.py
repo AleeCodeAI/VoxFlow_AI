@@ -1,5 +1,3 @@
-# transcriber.py
-
 import os
 import uuid
 import time

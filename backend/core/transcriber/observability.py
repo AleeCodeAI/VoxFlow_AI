@@ -1,5 +1,3 @@
-# observability.py
-
 import os
 from langfuse import Langfuse
 from langfuse.decorators import langfuse_context
