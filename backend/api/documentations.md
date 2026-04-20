@@ -375,11 +375,11 @@ api/
   main.py
 
   routes/
-    transcribe.py
-    process.py
-    tools.py
-    retrieval.py
-    workflow.py
+    transcribe_endpoints.py
+    preprocess_endpoints.py
+    tools_endpoints.py
+    retrieval_endpoints.py
+    workflow_endpoints.py
 
 ```
 

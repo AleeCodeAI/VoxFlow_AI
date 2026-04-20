@@ -4,7 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from api.routes.transcriber_endpoints import router as transcriber_router
-from api.routes.process_endpoints import router as process_router
+from api.routes.preprocess_endpoints import router as process_router
 from api.routes.tools_endpoints import router as tools_router
 from api.routes.workflow_endpoints import router as workflow_router
 from api.routes.retrieval_endpoints import router as retrieval_router
