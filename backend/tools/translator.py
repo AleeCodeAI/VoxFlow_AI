@@ -32,11 +32,11 @@ class Translate(Logger):
             # 3. Join them back together
             full_translation = " ".join(translated_parts)
             
-            self.log("✅ Translation completed")
+            self.log("Translation completed")
             return TranslationOutput(translated_data=full_translation)
             
         except Exception as e:
-            self.log(f"❌ something wrong happened: {str(e)}")
+            self.log(f"something wrong happened: {str(e)}")
             return TranslationOutput(translated_data=f"Translation Error: {str(e)}")
 # --- Execution ---
 if __name__ == "__main__":
