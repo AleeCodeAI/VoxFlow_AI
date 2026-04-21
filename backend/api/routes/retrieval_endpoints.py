@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 import os
+import json
 
 router = APIRouter()
 
@@ -21,7 +22,6 @@ async def get_transcription(transcription_id: str):
 
         with open(jsonl_file, "r", encoding="utf-8") as f:
             for line in f:
-                import json
 
                 obj = json.loads(line)
                 if obj.get("id") == transcription_id:
@@ -53,7 +53,8 @@ async def get_transcription(transcription_id: str):
 async def get_preprocessing(preprocessing_id: str):
     try:
         db_path = os.getenv(
-            "DATABASE_PATH", os.path.join(os.path.dirname(__file__), "databases")
+                "DATABASE_PATH",
+                os.path.join(os.path.dirname(__file__), "..", "..", "databases")
         )
         jsonl_file = os.path.join(db_path, "preprocessings.jsonl")
 
@@ -65,7 +66,6 @@ async def get_preprocessing(preprocessing_id: str):
 
         with open(jsonl_file, "r", encoding="utf-8") as f:
             for line in f:
-                import json
 
                 obj = json.loads(line)
                 if obj.get("id") == preprocessing_id:

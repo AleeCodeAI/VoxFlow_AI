@@ -1,3 +1,5 @@
+from datetime import datetime
+import uuid
 from fastapi import APIRouter, File, UploadFile, HTTPException
 import os
 from tempfile import NamedTemporaryFile
@@ -74,9 +76,6 @@ async def transcribe_direct_text(input_data: DirectTextInput):
     try:
         logger.info(f"Received direct text input: {input_data.name}")
 
-        from datetime import datetime
-        import uuid
-
         # Create transcription object directly
         transcription_obj = Transcription(
             id=str(uuid.uuid4()),
@@ -87,9 +86,9 @@ async def transcribe_direct_text(input_data: DirectTextInput):
 
         # Save to database
         db_path = os.getenv(
-                    "DATABASE_PATH",
-                     os.path.join(os.path.dirname(__file__), "..", "..", "databases"),
-)
+            "DATABASE_PATH",
+            os.path.join(os.path.dirname(__file__), "..", "..", "databases"),
+        )
         jsonl_file = os.path.join(db_path, "transcriptions.jsonl")
         os.makedirs(db_path, exist_ok=True)
 

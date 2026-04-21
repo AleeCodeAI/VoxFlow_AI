@@ -5,8 +5,6 @@ from pydantic_schemas import ProcessRequest, PreprocessingResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-# Initialize the core components (singleton pattern)
 preprocessor = Preprocessor()
 
 
