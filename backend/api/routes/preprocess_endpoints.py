@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 preprocessor = Preprocessor()
 
 
-@router.post("/process", response_model=PreprocessingResponse)
+@router.post("/preprocess", response_model=PreprocessingResponse)
 async def process_transcription(request: ProcessRequest):
     """
     Endpoint for processing a transcription using LLM.
