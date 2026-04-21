@@ -9,7 +9,6 @@ The architecture is divided into distinct layers:
 * Transcription layer (audio/text → raw text)
 * Preprocessing layer (text → structured output)
 * Tool layer (post-processing utilities)
-* Persistence layer (history storage)
 * Retrieval layer (accessing stored records)
 * Workflow layer (combined operations)
 
