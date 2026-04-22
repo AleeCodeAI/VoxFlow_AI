@@ -1,6 +1,6 @@
 from openai import OpenAI
 from pydantic_schemas import LLMParsedResponse, LLMCallError
-from configs import LLMConfig
+from configs import LLMConfig, PreprocessorConfig
 from langfuse.decorators import observe, langfuse_context
 from utils.color import Logger
 
@@ -10,7 +10,8 @@ class PreprocessorLLM(Logger):
 
     def __init__(self):
         self.llm_config = LLMConfig()
-        self.retries = 0
+        self.preprocessor_config = PreprocessorConfig()
+        self.retries = self.preprocessor_config.LLM_RETRIES
         self.api_key = self.llm_config.OPENROUTER_API_KEY
         self.url = self.llm_config.OPENROUTER_URL
         self.client = OpenAI(api_key=self.api_key, base_url=self.url)

@@ -13,11 +13,7 @@ from core.preprocessor.preprocessor_repository import PreprocessedRepository
 from core.preprocessor.preprocessor_llm import PreprocessorLLM
 from core.preprocessor.preprocessor_observability import PreprocessorObservability
 
-from prompts import (
-    PREPROCESSOR_SYSTEM_PROMPT,
-    PREPROCESSOR_USER_PROMPT_NO_CONTEXT,
-    PREPROCESSOR_USER_PROMPT_WITH_CONTEXT,
-)
+from configs import PreprocessorConfig
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -33,9 +29,10 @@ class Preprocessor(Logger):
             self.llm = PreprocessorLLM()
             self.repository = PreprocessedRepository()
             self.observability = PreprocessorObservability()
-            self.system_prompt = PREPROCESSOR_SYSTEM_PROMPT
-            self.user_prompt_with_context = PREPROCESSOR_USER_PROMPT_WITH_CONTEXT
-            self.user_prompt_no_context = PREPROCESSOR_USER_PROMPT_NO_CONTEXT
+            self.preprocessor_config = PreprocessorConfig()
+            self.system_prompt = self.preprocessor_config.PREPROCESSOR_SYSTEM_PROMPT
+            self.user_prompt_with_context = self.preprocessor_config.PREPROCESSOR_USER_PROMPT_WITH_CONTEXT
+            self.user_prompt_no_context = self.preprocessor_config.PREPROCESSOR_USER_PROMPT_NO_CONTEXT
 
             self.chunk_count = 0
             self.chunks_processed = 0
