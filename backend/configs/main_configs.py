@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parents[1]  
 
-class LLMConfig(BaseSettings):
+class MainSettings(BaseSettings):
     """Configuration for LLM-related settings."""
     
     model_config = SettingsConfigDict(
@@ -23,6 +23,6 @@ class LLMConfig(BaseSettings):
     GEMINI_MODEL: str = "google/gemini-2.0-flash"
 
 if __name__ == "__main__":
-    config = LLMConfig()
+    config = MainSettings()
     print(config.dict())
     print(config.GPT_MODEL)

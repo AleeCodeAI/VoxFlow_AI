@@ -1,14 +1,14 @@
-import os
 from langfuse import Langfuse
 from langfuse.decorators import langfuse_context
-
+from configs import MainSettings
 
 class PreprocessorObservability:
     def __init__(self):
+        self.langfuse_configs = MainSettings()
         self.langfuse = Langfuse(
-            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-            host=os.getenv("LANGFUSE_HOST"),
+            secret_key=self.langfuse_configs.LANGFUSE_SECRET_KEY,
+            public_key=self.langfuse_configs.LANGFUSE_PUBLIC_KEY,
+            host=self.langfuse_configs.LANGFUSE_HOST,
         )
 
     def update_trace(self, session_id, audio_name, transcription_length, chunk_size):

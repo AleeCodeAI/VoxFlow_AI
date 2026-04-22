@@ -1,2 +1,2 @@
-from .llm_configs import LLMConfig
+from .main_configs import MainSettings
 from .preprocessor_configs import PreprocessorConfig
