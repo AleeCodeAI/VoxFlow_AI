@@ -1,6 +1,6 @@
-import os
 from openai import OpenAI
 from pydantic_schemas import LLMParsedResponse, LLMCallError
+from configs import LLMConfig
 from langfuse.decorators import observe, langfuse_context
 from utils.color import Logger
 
@@ -8,11 +8,14 @@ class PreprocessorLLM(Logger):
     name = "PreprocessorLLM"
     color = Logger.GREEN
 
-    def __init__(self, client: OpenAI):
+    def __init__(self):
+        self.llm_config = LLMConfig()
         self.retries = 0
-        self.client = client
-        self.gemini = os.getenv("GEMINI_MODEL")
-        self.gpt = os.getenv("GPT_MODEL")
+        self.api_key = self.llm_config.OPENROUTER_API_KEY
+        self.url = self.llm_config.OPENROUTER_URL
+        self.client = OpenAI(api_key=self.api_key, base_url=self.url)
+        self.gemini = self.llm_config.GEMINI_MODEL
+        self.gpt = self.llm_config.GPT_MODEL
 
     @observe(name="call-llm-engine", as_type="generation")
     def call(self, messages, chunk_idx=None):

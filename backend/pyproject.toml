@@ -19,6 +19,7 @@ dependencies = [
     "openai-whisper>=20250625",
     "pdfkit>=1.0.0",
     "pydantic>=2.12.5",
+    "pydantic-settings>=2.14.0",
     "pydub>=0.25.1",
     "python-multipart>=0.0.21",
     "requests>=2.32.5",

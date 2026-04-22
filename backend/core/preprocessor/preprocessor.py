@@ -1,6 +1,4 @@
-import os
 import logging
-from openai import OpenAI
 from dotenv import load_dotenv
 
 from utils.color import Logger
@@ -32,21 +30,9 @@ class Preprocessor(Logger):
 
     def __init__(self):
         try:
-            api_key = os.getenv("OPENROUTER_API_KEY")
-            url = os.getenv("OPENROUTER_URL")
-
-            if not api_key or not url:
-                raise ValueError(
-                    "Missing OPENROUTER_API_KEY or OPENROUTER_URL in environment"
-                )
-
-            client = OpenAI(api_key=api_key, base_url=url)
-
-            self.llm = PreprocessorLLM(client=client)
+            self.llm = PreprocessorLLM()
             self.repository = PreprocessedRepository()
             self.observability = PreprocessorObservability()
-
-            self.model = os.getenv("GPT_MODEL")
             self.system_prompt = PREPROCESSOR_SYSTEM_PROMPT
             self.user_prompt_with_context = PREPROCESSOR_USER_PROMPT_WITH_CONTEXT
             self.user_prompt_no_context = PREPROCESSOR_USER_PROMPT_NO_CONTEXT
@@ -209,7 +195,7 @@ if __name__ == "__main__":
         "id": "d1f66d9b-414d-4b37-832d-6c494c0b8c53",
         "name": "test2.mp3",
         "transcription": """
-Uh, so basically, I was thinking that, you know, maybe we could start by discussing the main idea...
+Uh, so basically, I was thinking that, you know, maybe we could start by discussing the main idea... about the recent meeting we had with the clients. I mean, there were a lot of points raised, and I think it would be good to summarize them before we move on to the next steps. Also, I wanted to mention that the deadline for the project is coming up soon, so we need to make sure we're on track with our deliverables. Anyway, let me know your thoughts on this when you have a chance. Thanks!
 """,
     }
 
