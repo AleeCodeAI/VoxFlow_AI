@@ -16,21 +16,21 @@ from core.transcriber.audio_processor import AudioProcessor
 from core.transcriber.transcription_repository import TranscriptionRepository
 from core.transcriber.observability import ObservabilityManager
 
+from configs import TranscriberConfig
+
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 load_dotenv(override=True)
-
-MODEL = "small"
-
 
 class Transcriber(Logger):
     name = "Transcriber"
     color = Logger.BLUE
 
     def __init__(self):
-        self.whisper = whisper.load_model(MODEL)
-        self.max_workers = 4
-        self.chunk_length_ms = 90_000
+        self.transcriber_config = TranscriberConfig()
+        self.whisper = whisper.load_model(self.transcriber_config.MODEL)
+        self.max_workers = self.transcriber_config.MAX_WORKERS
+        self.chunk_length_ms = self.transcriber_config.CHUNK_LENGTH_MS
 
         self.audio_processor = AudioProcessor(
             whisper_model=self.whisper,
@@ -41,7 +41,7 @@ class Transcriber(Logger):
         self.observability = ObservabilityManager()
 
         self.log(
-            f"Loaded Whisper model '{MODEL}', workers: {self.max_workers}, chunk length: {self.chunk_length_ms}ms"
+            f"Loaded Whisper model '{self.transcriber_config.MODEL}', workers: {self.max_workers}, chunk length: {self.chunk_length_ms}ms"
         )
 
     @observe(name="audio-transcription")
@@ -85,7 +85,7 @@ class Transcriber(Logger):
         self.observability.update_trace(
             session_id=session_id,
             audio_file=audio_file,
-            model=MODEL,
+            model=self.transcriber_config.MODEL,
             chunk_length_ms=self.chunk_length_ms,
             max_workers=self.max_workers,
         )

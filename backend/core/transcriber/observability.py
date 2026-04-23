@@ -1,14 +1,15 @@
 import os
 from langfuse import Langfuse
 from langfuse.decorators import langfuse_context
-
+from configs import MainSettings
 
 class ObservabilityManager:
     def __init__(self):
+        self.langfuse_settings = MainSettings()
         self.langfuse = Langfuse(
-            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-            host=os.getenv("LANGFUSE_HOST"),
+            secret_key=self.langfuse_settings.LANGFUSE_SECRET_KEY,
+            public_key=self.langfuse_settings.LANGFUSE_PUBLIC_KEY,
+            host=self.langfuse_settings.LANGFUSE_HOST,
         )
 
     def update_trace(self, session_id, audio_file, model, chunk_length_ms, max_workers):

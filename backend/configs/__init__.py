@@ -1,2 +1,3 @@
 from .main_configs import MainSettings
 from .preprocessor_configs import PreprocessorConfig
+from .transcriber_configs import TranscriberConfig
