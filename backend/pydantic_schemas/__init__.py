@@ -58,6 +58,10 @@ from .fastapi_schemas import (
     TranslationResponse,
 )
 
+# ======================== SCHEMAS FOR PROMPTS ============================
+from .prompts import Prompt
+
+
 if __name__ == "__main__":
     print("THESE ARE THE PYDANTIC SCHEMAS FOR THE ENTIRE PROJECT")
     print("==" * 30)
@@ -114,6 +118,9 @@ if __name__ == "__main__":
             TranslationRequest,
             TranslationResponse,
         ],
+        "Prompt Schemas": [
+            Prompt,
+        ]
     }
 
     for title, schemas in sections.items():

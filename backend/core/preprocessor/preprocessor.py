@@ -4,16 +4,16 @@ from dotenv import load_dotenv
 from utils.color import Logger
 from langfuse.decorators import observe
 
-from pydantic_schemas import (PreprocessorError, 
-                              LLMCallError, 
-                              DatabaseError, 
+from pydantic_schemas import (PreprocessorError,
+                              LLMCallError,
+                              DatabaseError,
                               PreprocessorReport)
 
 from core.preprocessor.preprocessor_repository import PreprocessedRepository
 from core.preprocessor.preprocessor_llm import PreprocessorLLM
 from core.preprocessor.preprocessor_observability import PreprocessorObservability
 
-from configs import PreprocessorConfig
+from configs import PREPROCESSOR_PROMPT, MainSettings
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -29,10 +29,8 @@ class Preprocessor(Logger):
             self.llm = PreprocessorLLM()
             self.repository = PreprocessedRepository()
             self.observability = PreprocessorObservability()
-            self.preprocessor_config = PreprocessorConfig()
-            self.system_prompt = self.preprocessor_config.PREPROCESSOR_SYSTEM_PROMPT
-            self.user_prompt_with_context = self.preprocessor_config.PREPROCESSOR_USER_PROMPT_WITH_CONTEXT
-            self.user_prompt_no_context = self.preprocessor_config.PREPROCESSOR_USER_PROMPT_NO_CONTEXT
+            self.prompt = PREPROCESSOR_PROMPT
+            self.retries = MainSettings().PREPROCESSOR_LLM_RETRIES
 
             self.chunk_count = 0
             self.chunks_processed = 0
@@ -55,16 +53,19 @@ class Preprocessor(Logger):
             list: Messages array with system and user prompts
         """
         if previous_chunk:
-            user_content = self.user_prompt_with_context.format(
-                previous_chunk=previous_chunk, current_chunk=current_chunk
+            user_content = self.prompt.render_user(
+                "with_context",
+                previous_chunk=previous_chunk,
+                current_chunk=current_chunk
             )
         else:
-            user_content = self.user_prompt_no_context.format(
+            user_content = self.prompt.render_user(
+                "no_context",
                 current_chunk=current_chunk
             )
 
         return [
-            {"role": "system", "content": self.system_prompt},
+            {"role": "system", "content": self.prompt.system_prompt},
             {"role": "user", "content": user_content},
         ]
 
@@ -98,7 +99,7 @@ class Preprocessor(Logger):
             chunks.append(" ".join(current_chunk))
 
         self.log(f"Split transcription into {len(chunks)} chunks")
-        self.chunk_count = len(chunks) 
+        self.chunk_count = len(chunks)
         return chunks
 
     @observe(name="audio-preprocessing")
@@ -161,17 +162,17 @@ class Preprocessor(Logger):
 
                 final_combined_text = " ".join(preprocessed_chunks)
 
-            result = self.repository.save(session_id, 
-                                          audio_name, 
+            result = self.repository.save(session_id,
+                                          audio_name,
                                           final_combined_text)
-            
+
             self.observability.score_success()
 
-            self.report = PreprocessorReport(  
+            self.report = PreprocessorReport(
                             chunk_count=self.chunk_count,
                             chunks_processed=self.chunks_processed,
                             llm_retries=self.llm.retries)
-            
+
             return result
 
         except (LLMCallError, DatabaseError) as e:
