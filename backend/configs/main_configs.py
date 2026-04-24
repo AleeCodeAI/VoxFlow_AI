@@ -24,6 +24,9 @@ class MainSettings(BaseSettings):
 
     PREPROCESSOR_LLM_RETRIES: int = 3
 
+    AI_JUDGE_LLM_RETRIES: int = 3
+    AI_JUDGE_RETRY_DELAY: int = 2  # seconds
+
 if __name__ == "__main__":
     config = MainSettings()
     print(config.dict())

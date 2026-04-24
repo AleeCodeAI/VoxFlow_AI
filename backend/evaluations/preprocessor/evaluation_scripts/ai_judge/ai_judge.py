@@ -1,6 +1,5 @@
 from pydantic_schemas import EvaluationError, Result
 from utils.color import Logger
-from dotenv import load_dotenv
 from datetime import datetime
 from .evaluation_client import EvaluationClient
 from .prompt_builder import PromptBuilder
@@ -10,7 +9,6 @@ import logging
 import json
 import os
 
-load_dotenv(override=True)
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 

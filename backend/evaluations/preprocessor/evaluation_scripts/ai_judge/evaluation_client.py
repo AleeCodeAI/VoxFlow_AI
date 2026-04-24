@@ -1,30 +1,27 @@
 from openai import OpenAI
+from configs import MainSettings
 from pydantic_schemas import AIResult, EvaluationError
-from dotenv import load_dotenv
 from datetime import datetime
-import os
 import time
-
-load_dotenv(override=True)
-api_key = os.getenv("OPENROUTER_API_KEY")
-base_url = os.getenv("OPENROUTER_URL")
-gpt = os.getenv("GPT_MODEL")
-
-MAX_RETRIES = 3
-RETRY_DELAY = 2  # seconds
 
 
 class EvaluationClient:
     """Handles the OpenAI API call for AI Judge evaluation"""
 
     def __init__(self):
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
-        self.model = gpt
+        self.settings = MainSettings()
+        self.max_retries = self.settings.AI_JUDGE_LLM_RETRIES
+        self.retry_delay = self.settings.AI_JUDGE_RETRY_DELAY
+        self.client = OpenAI(
+            api_key=self.settings.OPENROUTER_API_KEY,
+            base_url=self.settings.OPENROUTER_URL,
+        )
+        self.model = self.settings.GPT_MODEL
 
     def call(self, messages):
         last_exception = None
 
-        for attempt in range(1, MAX_RETRIES + 1):
+        for attempt in range(1, self.max_retries + 1):
             try:
                 response = self.client.chat.completions.parse(
                     model=self.model,
@@ -37,13 +34,13 @@ class EvaluationClient:
 
             except Exception as e:
                 last_exception = e
-                if attempt < MAX_RETRIES:
-                    time.sleep(RETRY_DELAY)
+                if attempt < self.max_retries:
+                    time.sleep(self.retry_delay)
 
         error = EvaluationError(
             error_type="LLMCallError",
             message=str(last_exception),
             timestamp=datetime.now().isoformat(),
-            context={"model": self.model, "attempts": MAX_RETRIES},
+            context={"model": self.model, "attempts": self.max_retries},
         )
         raise Exception(error.model_dump_json())
