@@ -12,7 +12,7 @@ class ObservabilityManager:
             host=self.langfuse_settings.LANGFUSE_HOST,
         )
 
-    def update_trace(self, session_id, audio_file, model, chunk_length_ms, max_workers):
+    def update_trace(self, session_id, audio_file, model, chunk_length_ms):
         langfuse_context.update_current_trace(
             session_id=session_id,
             tags=["transcription", "audio", "whisper"],
@@ -20,7 +20,6 @@ class ObservabilityManager:
                 "audio_file": os.path.basename(audio_file),
                 "model": model,
                 "chunk_length_ms": chunk_length_ms,
-                "max_workers": max_workers,
             },
         )
 

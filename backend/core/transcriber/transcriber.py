@@ -29,26 +29,24 @@ class Transcriber(Logger):
     def __init__(self):
         self.transcriber_config = TranscriberConfig()
         self.whisper = whisper.load_model(self.transcriber_config.MODEL)
-        self.max_workers = self.transcriber_config.MAX_WORKERS
         self.chunk_length_ms = self.transcriber_config.CHUNK_LENGTH_MS
 
         self.audio_processor = AudioProcessor(
             whisper_model=self.whisper,
             chunk_length_ms=self.chunk_length_ms,
-            max_workers=self.max_workers,
         )
         self.repository = TranscriptionRepository()
         self.observability = ObservabilityManager()
 
         self.log(
-            f"Loaded Whisper model '{self.transcriber_config.MODEL}', workers: {self.max_workers}, chunk length: {self.chunk_length_ms}ms"
+            f"Loaded Whisper model '{self.transcriber_config.MODEL}', chunk length: {self.chunk_length_ms}ms"
         )
 
     @observe(name="audio-transcription")
     def transcribe(self, audio_file):
         """
         Main transcription workflow that processes audio file into text.
-        Splits long audio into chunks, transcribes in parallel, and combines results.
+        Splits long audio into chunks, transcribes sequentially, and combines results.
         Creates a Langfuse trace with session tracking and scores the result.
 
         Args:
@@ -87,7 +85,6 @@ class Transcriber(Logger):
             audio_file=audio_file,
             model=self.transcriber_config.MODEL,
             chunk_length_ms=self.chunk_length_ms,
-            max_workers=self.max_workers,
         )
 
         self.log(f"Loading audio file: {audio_file}")
@@ -96,7 +93,7 @@ class Transcriber(Logger):
         chunks = self.audio_processor.split_audio_chunks(audio)
 
         with TemporaryDirectory() as tmpdir:
-            transcriptions, report = self.audio_processor.process_chunks_parallel(
+            transcriptions, report = self.audio_processor.process_chunks(
                 chunks, tmpdir
             )
 

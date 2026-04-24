@@ -1,28 +1,22 @@
 import os
-import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 from pydantic_schemas import TranscriptionError, Retries, TranscriptionReport
 from langfuse.decorators import observe, langfuse_context
 from utils.color import Logger
-
+from configs import TranscriberConfig
 
 class AudioProcessor(Logger):
     name = "AudioProcessor"
     color = Logger.BLUE
 
-    def __init__(self, whisper_model, chunk_length_ms=90_000, max_workers=4):
+    def __init__(self, whisper_model, chunk_length_ms=90_000):
+        self.log("Initializing AudioProcessor with Whisper model and chunk length.")
+        self.max_retries = TranscriberConfig().MAX_RETRIES
         self.whisper = whisper_model
         self.chunk_length_ms = chunk_length_ms
-        self.max_workers = max_workers
-        self.lock = threading.Lock()
 
     def transcribe_chunk(self, chunk_data):
         """
-        Transcribe a single audio chunk using Whisper model with thread safety.
-        Uses a lock to prevent concurrent access to the model which can cause crashes.
-        Note: Not decorated with @observe because it runs in parallel threads where
-        Langfuse context is not maintained.
+        Transcribe a single audio chunk using Whisper model.
 
         Args:
             chunk_data: Tuple of (chunk_index, chunk_file_path)
@@ -33,13 +27,11 @@ class AudioProcessor(Logger):
         idx, chunk_file = chunk_data
         self.log(f"Transcribing chunk {idx + 1}")
 
-        max_retries = 3
+        max_retries = self.max_retries
         retries_count = 0
         for attempt in range(max_retries):
             try:
-                with self.lock:
-                    result = self.whisper.transcribe(chunk_file, fp16=False)
-
+                result = self.whisper.transcribe(chunk_file, fp16=False)
                 transcription_text = result["text"]
                 retries_entry = Retries(
                     chunk_no=idx + 1, retries=retries_count, success=True
@@ -99,10 +91,10 @@ class AudioProcessor(Logger):
 
         return chunks
 
-    @observe(name="process-chunks-parallel", as_type="span")
-    def process_chunks_parallel(self, chunks, tmpdir):
+    @observe(name="process-chunks", as_type="span")
+    def process_chunks(self, chunks, tmpdir):
         """
-        Export audio chunks to temporary files and transcribe them in parallel.
+        Export audio chunks to temporary files and transcribe them sequentially.
 
         Args:
             chunks: List of AudioSegment chunks
@@ -112,21 +104,20 @@ class AudioProcessor(Logger):
             tuple: (transcriptions dict, TranscriptionReport)
         """
         transcriptions = {}
-        chunk_files = []
         retries_list = []
 
         for idx, chunk in enumerate(chunks):
-            max_retries = 3
-            for attempt in range(max_retries):
+            max_retries = self.max_retries
+            for export_attempt in range(max_retries):
                 try:
                     chunk_file = os.path.join(tmpdir, f"chunk_{idx}.mp3")
                     chunk.export(chunk_file, format="mp3")
-                    chunk_files.append((idx, chunk_file))
+                    self.log(f"Prepared chunk file: {chunk_file}")
                     break
                 except Exception as e:
-                    if attempt < max_retries - 1:
+                    if export_attempt < max_retries - 1:
                         self.log(
-                            f"Retry {attempt + 1}/{max_retries - 1} exporting chunk {idx}: {str(e)}"
+                            f"Retry {export_attempt + 1}/{max_retries - 1} exporting chunk {idx}: {str(e)}"
                         )
                     else:
                         self.log(
@@ -136,22 +127,21 @@ class AudioProcessor(Logger):
                             f"Failed to export chunk {idx}: {str(e)}"
                         )
 
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = {
-                executor.submit(self.transcribe_chunk, chunk_data): chunk_data
-                for chunk_data in chunk_files
-            }
-
-            for future in as_completed(futures):
-                idx, transcription_text, retries_entry = future.result()
-                transcriptions[idx] = transcription_text
+            try:
+                idx_out, transcription_text, retries_entry = self.transcribe_chunk(
+                    (idx, chunk_file)
+                )
+                transcriptions[idx_out] = transcription_text
                 retries_list.append(retries_entry)
                 self.log(f"Completed chunk {idx + 1}/{len(chunks)}")
+            except TranscriptionError as e:
+                if len(e.args) > 1:
+                    retries_list.append(e.args[1])
+                raise
 
         langfuse_context.update_current_observation(
             metadata={
                 "total_chunks_processed": len(transcriptions),
-                "max_workers": self.max_workers,
             }
         )
 
