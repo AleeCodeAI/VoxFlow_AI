@@ -1,5 +1,4 @@
 import logging
-from dotenv import load_dotenv
 
 from utils.color import Logger
 from langfuse.decorators import observe
@@ -16,8 +15,6 @@ from core.preprocessor.preprocessor_observability import PreprocessorObservabili
 from configs import PREPROCESSOR_PROMPT, MainSettings
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
-
-load_dotenv(override=True)
 
 
 class Preprocessor(Logger):
