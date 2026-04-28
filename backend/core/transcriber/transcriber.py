@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     try:
         result_obj, report = transcriber.transcribe(
-            r"D:\Projects\audio_preprocessor\backend\evaluations\test_data\transcriber\valids\test3.wav"
+            r"D:\Projects\audio_preprocessor\backend\evaluations\test_data\transcriber\valids\test2.mp3"
         )
         print("\n" + "=" * 40)
         print("FINAL TRANSCRIPTION OBJECT")

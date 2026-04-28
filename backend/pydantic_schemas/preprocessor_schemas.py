@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 # ====================== EXCEPTIONS ======================
 class PreprocessorError(Exception):
@@ -19,7 +20,7 @@ class PreprocessedResult(BaseModel):
     id: str = Field(description="Matches the original transcription ID")
     name: str = Field(description="Original audio filename")
     preprocessed_transcription: str = Field(description="The cleaned text produced by LLM")
-    timestamp: str = Field(description="Time of preprocessing")
+    timestamp: datetime = Field(description="Time of preprocessing")
 
 class PreprocessorReport(BaseModel):
     chunk_count: int = Field(default=0, description="Number of chunks created from the original transcription")
