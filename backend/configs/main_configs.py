@@ -22,6 +22,8 @@ class MainSettings(BaseSettings):
     GPT_MODEL: str = "openai/gpt-4.1-nano"
     GEMINI_MODEL: str = "google/gemini-2.0-flash"
 
+    POSTGRESQL_URL: str
+
     PREPROCESSOR_LLM_RETRIES: int = 3
 
     AI_JUDGE_LLM_RETRIES: int = 3
