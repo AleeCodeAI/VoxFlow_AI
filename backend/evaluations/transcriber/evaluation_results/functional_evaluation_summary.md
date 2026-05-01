@@ -1,11 +1,11 @@
 # Transcription Functional Evaluation Summary
 
-**Generated:** 2026-04-24 16:45:19
+**Generated:** 2026-05-01 22:06:32
 
 ## Overview
 
-- **Total Files Tested:** 10
-- **Valid Files:** 8
+- **Total Files Tested:** 9
+- **Valid Files:** 7
 - **Invalid Files:** 2
 
 ## Performance Metrics
@@ -14,19 +14,19 @@
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| Overall Success Rate | 10/10 | 100.00% |
+| Overall Success Rate | 9/9 | 100.00% |
 | Expected Rejections (Invalid Files) | 2/2 | 100.00% |
-| Unexpected Failures | 0/10 | 0.00% |
+| Unexpected Failures | 0/9 | 0.00% |
 
 ### Valid Files Performance
 
 | Component | Count | Percentage |
 |-----------|-------|------------|
-| Valid Files Success Rate | 8/8 | 100.00% |
-| Input Validation Accuracy | 10/10 | 100.00% |
-| Transcription Completion | 8/8 | 100.00% |
-| Output Save Success | 8/8 | 100.00% |
-| Chunk Processing Success | 8/8 | 100.00% |
+| Valid Files Success Rate | 7/7 | 100.00% |
+| Input Validation Accuracy | 9/9 | 100.00% |
+| Transcription Completion | 7/7 | 100.00% |
+| Output Save Success | 7/7 | 100.00% |
+| Chunk Processing Success | 7/7 | 100.00% |
 
 ### Invalid Files Performance
 
@@ -39,7 +39,7 @@
 
 - **Total Errors:** 2
 - **Average Retries per File:** 0.00
-- **Average Execution Time:** 51828ms
+- **Average Execution Time:** 70890ms
 
 ## Status
 

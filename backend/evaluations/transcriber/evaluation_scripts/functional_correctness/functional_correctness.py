@@ -6,6 +6,7 @@ from datetime import datetime
 
 sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
 
+from databases.transcriber_eval_query_repository import TranscriberEvalQueryRepository
 from core.transcriber.transcriber import Transcriber
 from utils.color import Logger
 from pydantic_schemas import (
@@ -31,6 +32,7 @@ class TranscriptionFunctionalEvaluator(Logger):
 
     def __init__(self):
         self.transcriber = Transcriber()
+        self.output_check = TranscriberEvalQueryRepository()
 
     def load_test_files(self):
         valid_files = [
@@ -51,25 +53,11 @@ class TranscriptionFunctionalEvaluator(Logger):
         if not expected_valid:
             return has_format_error
         return not has_format_error
-
-    def check_output_saved(self, transcription_id):
-        if not transcription_id or not DB_FILE.exists():
+    
+    def check_output_saved(self, result_id):
+        if not result_id:
             return False
-
-        import json
-
-        with open(DB_FILE, "r", encoding="utf-8") as db_file:
-            for line in db_file:
-                if transcription_id in line:
-                    try:
-                        entry = json.loads(line)
-                        return all(
-                            field in entry
-                            for field in ("id", "name", "transcription", "timestamp")
-                        )
-                    except json.JSONDecodeError:
-                        return False
-        return False
+        return self.output_check.exists(result_id)
 
     def process_single_file(self, file_path, expected_valid):
         self.log(f"Testing {file_path.name} (expected_valid={expected_valid})")
