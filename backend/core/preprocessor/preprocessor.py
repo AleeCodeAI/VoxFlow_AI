@@ -1,4 +1,5 @@
 import logging
+from dotenv import load_dotenv
 
 from utils.color import Logger
 from langfuse.decorators import observe
@@ -16,7 +17,10 @@ from configs import PREPROCESSOR_PROMPT, MainSettings
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-
+load_dotenv(override=True) 
+"""
+the langfuse decorators read langfuse keys from environ. since we are using MainSettings that reads from .env and doesn't put keys on environ, this helps here. because load_dotenv takes all .env keys and put them on environ.
+"""
 class Preprocessor(Logger):
     name = "Preprocessor"
     color = Logger.GREEN

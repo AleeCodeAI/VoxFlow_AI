@@ -7,13 +7,6 @@ class PreprocessorObservability:
     def __init__(self):
         self.langfuse_configs = MainSettings()
 
-        # Configure decorator-level client so @observe picks up keys
-        langfuse_context.configure(
-            secret_key=self.langfuse_configs.LANGFUSE_SECRET_KEY,
-            public_key=self.langfuse_configs.LANGFUSE_PUBLIC_KEY,
-            host=self.langfuse_configs.LANGFUSE_HOST,
-        )
-
         self.langfuse = Langfuse(
             secret_key=self.langfuse_configs.LANGFUSE_SECRET_KEY,
             public_key=self.langfuse_configs.LANGFUSE_PUBLIC_KEY,
