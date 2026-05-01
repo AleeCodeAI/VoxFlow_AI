@@ -2,9 +2,18 @@ from langfuse import Langfuse
 from langfuse.decorators import langfuse_context
 from configs import MainSettings
 
+
 class PreprocessorObservability:
     def __init__(self):
         self.langfuse_configs = MainSettings()
+
+        # Configure decorator-level client so @observe picks up keys
+        langfuse_context.configure(
+            secret_key=self.langfuse_configs.LANGFUSE_SECRET_KEY,
+            public_key=self.langfuse_configs.LANGFUSE_PUBLIC_KEY,
+            host=self.langfuse_configs.LANGFUSE_HOST,
+        )
+
         self.langfuse = Langfuse(
             secret_key=self.langfuse_configs.LANGFUSE_SECRET_KEY,
             public_key=self.langfuse_configs.LANGFUSE_PUBLIC_KEY,
@@ -23,16 +32,22 @@ class PreprocessorObservability:
         )
 
     def score_success(self, comment="Successfully completed preprocessing"):
+        trace_id = langfuse_context.get_current_trace_id()
+        if not trace_id:
+            return
         self.langfuse.score(
-            trace_id=langfuse_context.get_current_trace_id(),
+            trace_id=trace_id,
             name="preprocessing-success",
             value=1,
             comment=comment,
         )
 
     def score_failure(self, reason: str):
+        trace_id = langfuse_context.get_current_trace_id()
+        if not trace_id:
+            return
         self.langfuse.score(
-            trace_id=langfuse_context.get_current_trace_id(),
+            trace_id=trace_id,
             name="preprocessing-failure",
             value=0,
             comment=reason,
