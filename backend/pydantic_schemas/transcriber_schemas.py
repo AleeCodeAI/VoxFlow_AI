@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
-
+from datetime import datetime
 
 class TranscriptionError(Exception):
     pass
@@ -12,7 +12,7 @@ class Transcription(BaseModel):
     id: str = Field(description="Unique identifier for the transcription")
     name: str = Field(description="Name of the audio file transcribed")
     transcription: str = Field(description="The full transcription of the audio file")
-    timestamp: str = Field(description="Time of transcription")
+    timestamp: datetime = Field(description="Time of transcription")
 
 
 class Retries(BaseModel):
