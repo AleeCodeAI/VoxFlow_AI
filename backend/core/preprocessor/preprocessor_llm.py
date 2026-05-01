@@ -10,12 +10,18 @@ class PreprocessorLLM(Logger):
 
     def __init__(self):
         self.llm_config = MainSettings()
-        self.retries = self.llm_config.PREPROCESSOR_LLM_RETRIES
+
+        self.retries_limit = self.llm_config.PREPROCESSOR_LLM_RETRIES
+
         self.api_key = self.llm_config.OPENROUTER_API_KEY
         self.url = self.llm_config.OPENROUTER_URL
+
         self.client = OpenAI(api_key=self.api_key, base_url=self.url)
+
         self.gemini = self.llm_config.GEMINI_MODEL
         self.gpt = self.llm_config.GPT_MODEL
+
+        self.retries = 0
 
     @observe(name="call-llm-engine", as_type="generation")
     def call(self, messages, chunk_idx=None):
@@ -35,7 +41,7 @@ class PreprocessorLLM(Logger):
         """
         last_error = None
 
-        for attempt in range(3):
+        for attempt in range(self.retries_limit + 1):
             model = self.gpt if attempt == 0 else self.gemini
 
             try:
@@ -85,7 +91,7 @@ class PreprocessorLLM(Logger):
 
             except Exception as e:
                 self.retries += 1
-                self.log(f"Attempt {attempt + 1}/3 failed with {model}: {str(e)}")
+                self.log(f"Attempt {attempt + 1}/{self.retries_limit + 1} failed with {model}: {str(e)}")
                 last_error = e
 
-        raise LLMCallError(f"All 3 attempts failed: {str(last_error)}") from last_error
+        raise LLMCallError(f"All attempts failed after {self.retries_limit} retries: {str(last_error)}") from last_error
