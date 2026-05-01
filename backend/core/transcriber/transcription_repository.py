@@ -29,9 +29,11 @@ class TranscriptionRepository:
         audio_name = os.path.basename(audio_file)
 
         for session in get_session():
-            return self.db_repository.save(
+            result = self.db_repository.save(
                 session=session,
                 session_id=session_id,
                 audio_name=audio_name,
                 transcription_text=transcription_text,
             )
+
+        return result 
