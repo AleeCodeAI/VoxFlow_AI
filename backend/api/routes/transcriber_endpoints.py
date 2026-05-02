@@ -4,12 +4,18 @@ from tempfile import NamedTemporaryFile
 import os
 import logging
 
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, File, UploadFile, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from pydantic_schemas import DirectTextInput, TranscriptionResponse, Transcription
 from core.transcriber.transcriber import Transcriber
 from core.transcriber.transcription_cache import TranscriptionCache
 from databases.database import get_session
 from databases.transcriber_repository import TranscriptionRepository
+from configs import MainSettings
+
+settings = MainSettings()
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -19,7 +25,8 @@ cache = TranscriptionCache()
 
 
 @router.post("/transcribe/audio", response_model=TranscriptionResponse)
-async def transcribe_audio_file(file: UploadFile = File(...)):
+@limiter.limit(settings.TRANSCRIBE_AUDIO_RATE_LIMIT)
+async def transcribe_audio_file(request: Request, file: UploadFile = File(...)):
     """
     Endpoint for uploading and transcribing audio files.
     Checks Redis cache first using SHA256 hash of file bytes.
@@ -58,7 +65,6 @@ async def transcribe_audio_file(file: UploadFile = File(...)):
         os.unlink(temp_path)
 
         cache.set(file_hash, transcription_obj.model_dump_json())
-
         logger.info(f"Transcription completed and cached for: {file.filename}")
 
         return TranscriptionResponse(
@@ -82,7 +88,8 @@ async def transcribe_audio_file(file: UploadFile = File(...)):
 
 
 @router.post("/transcribe/text", response_model=TranscriptionResponse)
-async def transcribe_direct_text(input_data: DirectTextInput):
+@limiter.limit(settings.TRANSCRIBE_TEXT_RATE_LIMIT)
+async def transcribe_direct_text(request: Request, input_data: DirectTextInput):
     """
     Endpoint for directly pasted text (no audio transcription needed).
 

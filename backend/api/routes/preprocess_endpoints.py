@@ -1,7 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import logging
 from core.preprocessor.preprocessor import Preprocessor
 from pydantic_schemas import ProcessRequest, PreprocessingResponse
+from configs import MainSettings
+
+settings = MainSettings()
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -9,7 +15,8 @@ preprocessor = Preprocessor()
 
 
 @router.post("/process", response_model=PreprocessingResponse)
-async def process_transcription(request: ProcessRequest):
+@limiter.limit(settings.PREPROCESS_RATE_LIMIT)
+async def process_transcription(request: Request, input_data: ProcessRequest):
     """
     Endpoint for processing a transcription using LLM.
 
@@ -17,23 +24,20 @@ async def process_transcription(request: ProcessRequest):
     - Returns: PreprocessedResult object with status
     """
     try:
-        logger.info(f"Processing transcription ID: {request.id}")
+        logger.info(f"Processing transcription ID: {input_data.id}")
 
-        # Convert request to dict for preprocessor
-        input_data = {
-            "id": request.id,
-            "name": request.name,
-            "transcription": request.transcription,
+        input_dict = {
+            "id": input_data.id,
+            "name": input_data.name,
+            "transcription": input_data.transcription,
         }
 
-        # Process using your Preprocessor class
-        preprocessed_obj = preprocessor.preprocess(input_data)
-
-        logger.info(f"Processing completed for ID: {request.id}")
+        preprocessed_obj = preprocessor.preprocess(input_dict)
+        logger.info(f"Processing completed for ID: {input_data.id}")
 
         return PreprocessingResponse(
             status="success",
-            message=f"Transcription '{request.name}' processed successfully",
+            message=f"Transcription '{input_data.name}' processed successfully",
             data=preprocessed_obj,
         )
 
