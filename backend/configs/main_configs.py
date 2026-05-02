@@ -29,6 +29,11 @@ class MainSettings(BaseSettings):
     AI_JUDGE_LLM_RETRIES: int = 3
     AI_JUDGE_RETRY_DELAY: int = 2  # seconds
 
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+    REDIS_TTL: int = 86400  # 24 hours in seconds
+
 if __name__ == "__main__":
     config = MainSettings()
     print(config.dict())
