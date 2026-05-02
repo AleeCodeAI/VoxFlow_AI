@@ -1,6 +1,5 @@
 import json
 import uuid
-from datetime import datetime
 from tempfile import NamedTemporaryFile
 import os
 import logging
