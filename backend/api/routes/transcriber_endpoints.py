@@ -11,6 +11,11 @@ from pydantic_schemas import (
 )
 from core.transcriber.transcriber import Transcriber
 
+from databases.database import get_session
+from databases.transcriber_repository import TranscriptionRepository
+
+transcription_repo = TranscriptionRepository()
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
 transcriber = Transcriber()
@@ -67,42 +72,30 @@ async def transcribe_audio_file(file: UploadFile = File(...)):
 
 @router.post("/transcribe/text", response_model=TranscriptionResponse)
 async def transcribe_direct_text(input_data: DirectTextInput):
-    """
-    Endpoint for directly pasted text (no audio transcription needed).
-
-    - Accepts: JSON with 'name' and 'transcription' fields
-    - Returns: Transcription object with status
-    """
     try:
         logger.info(f"Received direct text input: {input_data.name}")
 
-        # Create transcription object directly
         transcription_obj = Transcription(
             id=str(uuid.uuid4()),
             name=input_data.name,
             transcription=input_data.transcription,
-            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            timestamp=datetime.now(),
         )
 
-        # Save to database
-        db_path = os.getenv(
-            "DATABASE_PATH",
-            os.path.join(os.path.dirname(__file__), "..", "..", "databases"),
-        )
-        jsonl_file = os.path.join(db_path, "transcriptions.jsonl")
-        os.makedirs(db_path, exist_ok=True)
+        for session in get_session():
+            result = transcription_repo.save(
+                session=session,
+                session_id=transcription_obj.id,
+                audio_name=transcription_obj.name,
+                transcription_text=transcription_obj.transcription,
+            )
 
-        with open(jsonl_file, "a", encoding="utf-8") as f:
-            f.write(transcription_obj.model_dump_json() + "\n")
-            f.flush()
-            os.fsync(f.fileno())
-
-        logger.info(f"Direct text saved as transcription: {transcription_obj.id}")
+        logger.info(f"Direct text saved as transcription: {result.id}")
 
         return TranscriptionResponse(
             status="success",
             message=f"Text '{input_data.name}' saved successfully",
-            data=transcription_obj,
+            data=result,
         )
 
     except Exception as e:
