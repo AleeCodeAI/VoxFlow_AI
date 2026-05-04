@@ -3,7 +3,7 @@ from langfuse import Langfuse
 from langfuse.decorators import langfuse_context
 from configs import MainSettings
 
-class ObservabilityManager:
+class TranscriberObservability:
     def __init__(self):
         self.langfuse_settings = MainSettings()
         self.langfuse = Langfuse(

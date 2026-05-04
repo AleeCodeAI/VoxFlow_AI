@@ -14,7 +14,7 @@ from langfuse.decorators import observe
 
 from core.transcriber.audio_processor import AudioProcessor
 from core.transcriber.transcription_repository import TranscriptionRepository
-from core.transcriber.observability import ObservabilityManager
+from core.transcriber.observability import TranscriberObservability
 
 from configs import TranscriberConfig
 
@@ -36,7 +36,7 @@ class Transcriber(Logger):
             chunk_length_ms=self.chunk_length_ms,
         )
         self.repository = TranscriptionRepository()
-        self.observability = ObservabilityManager()
+        self.observability = TranscriberObservability()
 
         self.log(
             f"Loaded Whisper model '{self.transcriber_config.MODEL}', chunk length: {self.chunk_length_ms}ms"
