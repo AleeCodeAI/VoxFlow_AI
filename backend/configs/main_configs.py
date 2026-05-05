@@ -31,6 +31,8 @@ class MainSettings(BaseSettings):
     # ------------------- Retry Configurations ------------------ #
     PREPROCESSOR_LLM_RETRIES: int = 3
 
+    EXTRACTOR_LLM_RETRIES: int = 3
+
     AI_JUDGE_LLM_RETRIES: int = 3
     AI_JUDGE_RETRY_DELAY: int = 2  # seconds
 

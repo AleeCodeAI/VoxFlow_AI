@@ -55,38 +55,23 @@ async def send_email(request: EmailRequest):
 
 @router.post("/extract-text", response_model=TextExtractionResponse)
 async def extract_text(request: TextExtractionRequest):
-    try:
-        logger.info("Extracting keywords and keypoints from processed data")
+    logger.info("Extracting keywords and keypoints from processed data")
 
-        from tools.text_extractor import TextExtracter, ProcessedData
+    from tools.text_extractor import TextExtracter, ProcessedData
 
-        text_extracter = TextExtracter()
+    text_extracter = TextExtracter()
+    processed_data = ProcessedData(processed_data=request.processed_data)
 
-        processed_data = ProcessedData(processed_data=request.processed_data)
+    extraction_result = text_extracter.extract(processed_data)
 
-        extraction_result = text_extracter.extract(processed_data.processed_data)
-
-        logger.info("Text extraction completed")
-
-        return TextExtractionResponse(
-            status="success",
-            message="Text extraction completed successfully",
-            data=TextExtractionData(
-                keywords=extraction_result.keywords,
-                keypoints=extraction_result.keypoints,
-            ),
-        )
-
-    except Exception as e:
-        logger.error(f"Error extracting text: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "status": "error",
-                "message": "Text extraction failed",
-                "detail": str(e),
-            },
-        )
+    return TextExtractionResponse(
+        status="success",
+        message="Text extraction completed successfully",
+        data=TextExtractionData(
+            keywords=extraction_result.keywords,
+            keypoints=extraction_result.keypoints,
+        ),
+    )
 
 
 @router.post("/translate", response_model=TranslationResponse)
