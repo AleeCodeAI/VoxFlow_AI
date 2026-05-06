@@ -8,10 +8,28 @@ const SUPPORTED_LANGS = {
   'Albanian': 'sq', 'Arabic': 'ar', 'Armenian': 'hy', 'Assamese': 'as', 'Azerbaijani': 'az', 'Bengali': 'bn', 'Bhojpuri': 'bho', 'Bosnian': 'bs', 'Bulgarian': 'bg', 'Catalan': 'ca', 'Chinese (simplified)': 'zh-CN', 'Chinese (traditional)': 'zh-TW', 'Croatian': 'hr', 'Czech': 'cs', 'Danish': 'da', 'Dutch': 'nl', 'English': 'en', 'Estonian': 'et', 'Filipino': 'tl', 'Finnish': 'fi', 'French': 'fr', 'Georgian': 'ka', 'German': 'de', 'Greek': 'el', 'Gujarati': 'gu', 'Hindi': 'hi', 'Hungarian': 'hu', 'Icelandic': 'is', 'Indonesian': 'id', 'Irish': 'ga', 'Italian': 'it', 'Japanese': 'ja', 'Javanese': 'jw', 'Kannada': 'kn', 'Kazakh': 'kk', 'Khmer': 'km', 'Korean': 'ko', 'Lao': 'lo', 'Latvian': 'lv', 'Lithuanian': 'lt', 'Macedonian': 'mk', 'Malay': 'ms', 'Malayalam': 'ml', 'Marathi': 'mr', 'Mongolian': 'mn', 'Myanmar': 'my', 'Nepali': 'ne', 'Norwegian': 'no', 'Odia (oriya)': 'or', 'Pashto': 'ps', 'Persian': 'fa', 'Polish': 'pl', 'Portuguese': 'pt', 'Punjabi': 'pa', 'Romanian': 'ro', 'Russian': 'ru', 'Sanskrit': 'sa', 'Serbian': 'sr', 'Sindhi': 'sd', 'Sinhala': 'si', 'Slovak': 'sk', 'Slovenian': 'sl', 'Spanish': 'es', 'Swedish': 'sv', 'Tamil': 'ta', 'Telugu': 'te', 'Thai': 'th', 'Turkish': 'tr', 'Ukrainian': 'uk', 'Urdu': 'ur', 'Uzbek': 'uz', 'Vietnamese': 'vi', 'Welsh': 'cy'
 };
 
+// ─── Safe error messages by HTTP status ─────────────────────────────────────
+const STATUS_MESSAGES = {
+  400: 'Invalid request. Please check your input.',
+  422: 'Invalid input format.',
+  500: 'Server error. Please try again.',
+  503: 'Service unavailable. Please try again later.',
+};
+
+const apiFetch = async (url, options = {}) => {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const message = STATUS_MESSAGES[response.status] || 'Something went wrong. Please try again.';
+    throw new Error(message);
+  }
+  return response.json();
+};
+
 // ─── Session state factory ───────────────────────────────────────────────────
 const createSession = (label = 'New Session') => ({
   id: Date.now(),
   label,
+  mode: 'manual',
   liveAudio: null,
   uploadedFile: null,
   manualText: '',
@@ -19,7 +37,7 @@ const createSession = (label = 'New Session') => ({
   isRecording: false,
   transcriptionResult: null,
   editedTranscription: '',
-  processedResults: [],       // array of { id, text, timestamp }
+  processedResults: [],
   toolResult: null,
   selectedTool: '',
   targetLang: 'es',
@@ -46,15 +64,12 @@ const Sidebar = ({ sessions, activeId, onSelect, onNew, onRename, collapsed, onT
 
   return (
     <aside className={`flex flex-col bg-slate-950 border-r border-slate-800/70 transition-all duration-300 ${collapsed ? 'w-14' : 'w-64'} min-h-screen`}>
-      {/* Sidebar header */}
       <div className="flex items-center justify-between px-3 py-4 border-b border-slate-800/70">
         {!collapsed && <span className="text-slate-300 text-sm font-semibold tracking-wide">Sessions</span>}
         <button onClick={onToggle} className="text-slate-500 hover:text-slate-300 transition-colors ml-auto">
           {collapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
         </button>
       </div>
-
-      {/* New session button */}
       <div className="px-2 py-3 border-b border-slate-800/70">
         <button
           onClick={onNew}
@@ -64,8 +79,6 @@ const Sidebar = ({ sessions, activeId, onSelect, onNew, onRename, collapsed, onT
           {!collapsed && <span>New Session</span>}
         </button>
       </div>
-
-      {/* Session list */}
       <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
         {sessions.map(s => (
           <div
@@ -124,7 +137,6 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Derive label from transcription text
   const deriveLabelFromText = (text) => {
     const words = text.trim().split(/\s+/).slice(0, 5).join(' ');
     return words || 'New Session';
@@ -162,56 +174,67 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
     try {
       const formData = new FormData();
       formData.append('file', audioToTranscribe, s.liveAudio ? 'recording.webm' : s.uploadedFile.name);
-      const response = await fetch(`${API_BASE_URL}/transcribe/audio`, { method: 'POST', body: formData });
-      const result = await response.json();
-      if (response.ok) {
-        const label = deriveLabelFromText(result.data.transcription);
-        update({ transcriptionResult: result.data, editedTranscription: result.data.transcription, processedResults: [], toolResult: null, selectedTool: '', label });
-      } else { showNotification('error', result.detail?.message || 'Transcription failed'); }
-    } catch (err) { showNotification('error', `Error: ${err.message}`); } finally { setIsTranscribing(false); }
+      const result = await apiFetch(`${API_BASE_URL}/transcribe/audio`, { method: 'POST', body: formData });
+      const label = deriveLabelFromText(result.data.transcription);
+      update({ transcriptionResult: result.data, editedTranscription: result.data.transcription, processedResults: [], toolResult: null, selectedTool: '', label });
+      showNotification('success', result.message);
+    } catch (err) { showNotification('error', err.message); } finally { setIsTranscribing(false); }
+  };
+
+  const transcribeAndProcess = async () => {
+    const audioToProcess = s.liveAudio || s.uploadedFile;
+    if (!audioToProcess) { showNotification('error', 'Please provide audio file'); return; }
+    setIsTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', audioToProcess, s.liveAudio ? 'recording.webm' : s.uploadedFile.name);
+      const result = await apiFetch(`${API_BASE_URL}/transcribe-and-process/audio`, { method: 'POST', body: formData });
+      const label = deriveLabelFromText(result.transcription.transcription);
+      const newEntry = {
+        id: Date.now(),
+        text: result.preprocessed.preprocessed_transcription,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        fullResult: result.preprocessed,
+      };
+      update({ transcriptionResult: result.transcription, editedTranscription: result.transcription.transcription, processedResults: [newEntry], toolResult: null, selectedTool: '', label });
+      showNotification('success', 'Transcribed and processed successfully');
+    } catch (err) { showNotification('error', err.message); } finally { setIsTranscribing(false); }
   };
 
   const submitDirectText = async () => {
     if (!s.manualName.trim() || !s.manualText.trim()) { showNotification('error', 'Please provide name and text'); return; }
     setIsTranscribing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/transcribe/text`, {
+      const result = await apiFetch(`${API_BASE_URL}/transcribe/text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: s.manualName, transcription: s.manualText }),
       });
-      const result = await response.json();
-      if (response.ok) {
-        const label = deriveLabelFromText(result.data.transcription);
-        update({ transcriptionResult: result.data, editedTranscription: result.data.transcription, manualName: '', manualText: '', processedResults: [], toolResult: null, selectedTool: '', label });
-        showNotification('success', result.message);
-      }
-    } finally { setIsTranscribing(false); }
+      const label = deriveLabelFromText(result.data.transcription);
+      update({ transcriptionResult: result.data, editedTranscription: result.data.transcription, manualName: '', manualText: '', processedResults: [], toolResult: null, selectedTool: '', label });
+      showNotification('success', result.message);
+    } catch (err) { showNotification('error', err.message); } finally { setIsTranscribing(false); }
   };
 
   const processTranscription = async () => {
     if (!s.transcriptionResult) return;
     setIsProcessing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/process`, {
+      const result = await apiFetch(`${API_BASE_URL}/process`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: s.transcriptionResult.id, name: s.transcriptionResult.name, transcription: s.editedTranscription }),
       });
-      const result = await response.json();
-      if (response.ok) {
-        const newEntry = {
-          id: Date.now(),
-          text: result.data.preprocessed_transcription,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          fullResult: result.data,
-        };
-        update({ processedResults: [...s.processedResults, newEntry] });
-      }
-    } finally { setIsProcessing(false); }
+      const newEntry = {
+        id: Date.now(),
+        text: result.data.preprocessed_transcription,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        fullResult: result.data,
+      };
+      update({ processedResults: [...s.processedResults, newEntry] });
+    } catch (err) { showNotification('error', err.message); } finally { setIsProcessing(false); }
   };
 
-  // Latest processed result (for tools)
   const latestProcessed = s.processedResults.length > 0 ? s.processedResults[s.processedResults.length - 1] : null;
 
   const downloadAllVersions = () => {
@@ -241,36 +264,34 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
   const triggerEmail = async () => {
     setIsToolLoading(true);
     try {
-      await fetch(`${API_BASE_URL}/send-email`, {
+      await apiFetch(`${API_BASE_URL}/send-email`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...s.emailData, processed_data: latestProcessed.fullResult.preprocessed_transcription }),
+        body: JSON.stringify({ ...s.emailData, processed_data: latestProcessed.text }),
       });
       showNotification('success', 'Email sent!');
-    } finally { setIsToolLoading(false); }
+    } catch (err) { showNotification('error', err.message); } finally { setIsToolLoading(false); }
   };
 
   const triggerExtraction = async () => {
     setIsToolLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/extract-text`, {
+      const result = await apiFetch(`${API_BASE_URL}/extract-text`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ processed_data: latestProcessed.fullResult.preprocessed_transcription }),
+        body: JSON.stringify({ processed_data: latestProcessed.text }),
       });
-      const result = await response.json();
-      if (response.ok) update({ toolResult: { type: 'extraction', data: result.data } });
-    } finally { setIsToolLoading(false); }
+      update({ toolResult: { type: 'extraction', data: result.data } });
+    } catch (err) { showNotification('error', err.message); } finally { setIsToolLoading(false); }
   };
 
   const triggerTranslation = async () => {
     setIsToolLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/translate`, {
+      const result = await apiFetch(`${API_BASE_URL}/translate`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: s.targetLang, processed_data: latestProcessed.fullResult.preprocessed_transcription }),
+        body: JSON.stringify({ language: s.targetLang, processed_data: latestProcessed.text }),
       });
-      const result = await response.json();
-      if (response.ok) update({ toolResult: { type: 'translation', data: result.translated_data } });
-    } finally { setIsToolLoading(false); }
+      update({ toolResult: { type: 'translation', data: result.translated_data } });
+    } catch (err) { showNotification('error', err.message); } finally { setIsToolLoading(false); }
   };
 
   const Divider = () => (
@@ -280,6 +301,12 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
       <div className="flex-1 h-px bg-slate-700/50" />
     </div>
   );
+
+  const audioButtonLabel = s.mode === 'auto'
+    ? (isTranscribing ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : <><Sparkles className="w-4 h-4" /> Transcribe & Process</>)
+    : (isTranscribing ? <><Loader2 className="w-4 h-4 animate-spin" /> Transcribing...</> : 'Transcribe');
+
+  const handleAudioAction = s.mode === 'auto' ? transcribeAndProcess : transcribeAudio;
 
   return (
     <div className="flex-1 min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-8 overflow-y-auto relative">
@@ -305,6 +332,25 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
 
         {/* Input Methods */}
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl shadow-2xl p-6 border border-slate-700/50 mb-8">
+
+          {/* Mode Toggle */}
+          <div className="flex items-center justify-end mb-5">
+            <div className="flex items-center gap-1 bg-slate-950/60 border border-slate-700/60 rounded-xl p-1">
+              <button
+                onClick={() => update({ mode: 'manual' })}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${s.mode === 'manual' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                Manual
+              </button>
+              <button
+                onClick={() => update({ mode: 'auto' })}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${s.mode === 'auto' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                Auto
+              </button>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-4">
 
             {/* Live Recording */}
@@ -319,8 +365,8 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
               </button>
               {s.liveAudio && (
                 <div className="flex justify-center mt-4">
-                  <button onClick={transcribeAudio} disabled={isTranscribing} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors">
-                    {isTranscribing ? <><Loader2 className="w-4 h-4 animate-spin" /> Transcribing...</> : 'Transcribe Recording'}
+                  <button onClick={handleAudioAction} disabled={isTranscribing} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors">
+                    {audioButtonLabel}
                   </button>
                 </div>
               )}
@@ -340,33 +386,36 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
               </label>
               {s.uploadedFile && (
                 <div className="flex justify-center mt-4">
-                  <button onClick={transcribeAudio} disabled={isTranscribing} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors">
-                    {isTranscribing ? <><Loader2 className="w-4 h-4 animate-spin" /> Transcribing...</> : 'Transcribe File'}
+                  <button onClick={handleAudioAction} disabled={isTranscribing} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors">
+                    {audioButtonLabel}
                   </button>
                 </div>
               )}
             </div>
 
-            <Divider />
-
-            {/* Direct Text */}
-            <div className="bg-slate-900/50 rounded-2xl p-5 border border-slate-700/50 text-center">
-              <div className="flex items-center gap-3 mb-4 text-left"><FileText className="w-5 h-5 text-blue-400" /><h3 className="text-white font-semibold">Direct Text</h3></div>
-              <input type="text" value={s.manualName} onChange={(e) => update({ manualName: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm mb-3" placeholder="Session Name" />
-              <textarea value={s.manualText} onChange={(e) => update({ manualText: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm" rows={4} placeholder="Paste your raw text here..." />
-              {s.manualText && s.manualName && (
-                <div className="flex justify-center mt-4">
-                  <button onClick={submitDirectText} disabled={isTranscribing} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors">
-                    {isTranscribing ? <><Loader2 className="w-4 h-4 animate-spin" /> Preparing...</> : 'Save & Prepare'}
-                  </button>
+            {/* Direct Text — manual only */}
+            {s.mode === 'manual' && (
+              <>
+                <Divider />
+                <div className="bg-slate-900/50 rounded-2xl p-5 border border-slate-700/50 text-center">
+                  <div className="flex items-center gap-3 mb-4 text-left"><FileText className="w-5 h-5 text-blue-400" /><h3 className="text-white font-semibold">Direct Text</h3></div>
+                  <input type="text" value={s.manualName} onChange={(e) => update({ manualName: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm mb-3" placeholder="Session Name" />
+                  <textarea value={s.manualText} onChange={(e) => update({ manualText: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm" rows={4} placeholder="Paste your raw text here..." />
+                  {s.manualText && s.manualName && (
+                    <div className="flex justify-center mt-4">
+                      <button onClick={submitDirectText} disabled={isTranscribing} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors">
+                        {isTranscribing ? <><Loader2 className="w-4 h-4 animate-spin" /> Preparing...</> : 'Save & Prepare'}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Transcription Editor */}
-        {s.transcriptionResult && (
+        {/* Transcription Editor — manual only */}
+        {s.mode === 'manual' && s.transcriptionResult && (
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 border border-slate-700/50 mb-8">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3"><FileText className="w-6 h-6 text-blue-400" />Original Transcription</h2>
             <textarea value={s.editedTranscription} onChange={(e) => update({ editedTranscription: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-slate-200 font-mono text-sm mb-6" rows={8} />
@@ -381,25 +430,21 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
         {/* Processed Results History */}
         {s.processedResults.length > 0 && (
           <div className="space-y-4 mb-8">
-            {/* Header row with download all */}
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
                 <Sparkles className="w-6 h-6 text-purple-400" />
                 AI Results
                 <span className="text-xs font-normal text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">{s.processedResults.length} version{s.processedResults.length > 1 ? 's' : ''}</span>
               </h2>
-              {s.processedResults.length > 0 && (
-                <button
-                  onClick={downloadAllVersions}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition-all"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Download All Versions
-                </button>
-              )}
+              <button
+                onClick={downloadAllVersions}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download All Versions
+              </button>
             </div>
 
-            {/* Each version */}
             {s.processedResults.map((v, i) => (
               <div key={v.id} className={`rounded-3xl p-6 border-2 relative ${i === s.processedResults.length - 1 ? 'bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/40' : 'bg-slate-900/60 border-slate-700/40'}`}>
                 <div className="flex items-center justify-between mb-4">
@@ -425,7 +470,7 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
           </div>
         )}
 
-        {/* Tools — always based on latest processed */}
+        {/* Tools */}
         {latestProcessed && (
           <div className="bg-slate-900 rounded-2xl p-6 border border-slate-700 mb-8">
             <h3 className="text-white font-semibold mb-4">Next Steps</h3>
@@ -489,7 +534,7 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
         {/* Footer */}
         <div className="mt-4 mb-8 pt-8 border-t border-slate-800 text-center">
           <p className="text-slate-400 text-sm mb-4">I am Alee, a 17 year old Aspiring AI Engineer</p>
-          <a href="https://github.com/AleeCodeAI" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-700 rounded-full text-slate-300 text-sm">
+          <a href="https://github.com/AleeCodeAI/VoxFlow_AI" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-700 rounded-full text-slate-300 text-sm">
             <Github className="w-4 h-4" /> <span>@AleeCodeAI</span>
           </a>
         </div>
@@ -500,7 +545,7 @@ const ToolPage = ({ session, onUpdate, onGoHome }) => {
 
 // ─── Root App ────────────────────────────────────────────────────────────────
 const App = () => {
-  const [page, setPage] = useState('home'); // 'home' | 'tool'
+  const [page, setPage] = useState('home');
   const [sessions, setSessions] = useState([createSession('New Session')]);
   const [activeId, setActiveId] = useState(sessions[0].id);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -521,10 +566,8 @@ const App = () => {
     setActiveId(s.id);
   };
 
-  const handleStart = () => setPage('tool');
-
   if (page === 'home') {
-    return <HomePage onStart={handleStart} />;
+    return <HomePage onStart={() => setPage('tool')} />;
   }
 
   return (
