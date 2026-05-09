@@ -28,6 +28,9 @@ class MainSettings(BaseSettings):
     # ------------------- Database ------------------ #
     POSTGRESQL_URL: str
 
+    # ------------------- N8N Webhook URL ------------------ #
+    N8N_WEBHOOK_URL: str
+
     # ------------------- Retry Configurations ------------------ #
     PREPROCESSOR_LLM_RETRIES: int = 3
 
