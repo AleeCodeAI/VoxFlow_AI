@@ -1,0 +1,50 @@
+services:
+
+  # ============================================================
+  # BACKEND (FastAPI + Whisper small baked in)
+  # ============================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: audio_preprocessor_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+    environment:
+      - POSTGRESQL_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@shared-postgres:5432/audio_preprocessor
+      - REDIS_HOST=shared-redis
+      - REDIS_PORT=6379
+      - LANGFUSE_HOST=http://shared-langfuse:3000
+      - N8N_WEBHOOK_URL=http://shared-n8n:5678/webhook/66531120-ed67-4a06-b6a2-0a690273e957
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY_DOCKER}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY_DOCKER}
+    volumes:
+      - ~/.cache/whisper:/root/.cache/whisper
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+  # ============================================================
+  # FRONTEND (React + Vite)
+  # ============================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: audio_preprocessor_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+# ============================================================
+# NETWORKS
+# ============================================================
+networks:
+  infra-network:
+    external: true

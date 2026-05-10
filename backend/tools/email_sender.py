@@ -2,10 +2,11 @@ from pydantic_schemas import Email
 import requests
 from utils.color import Logger
 import logging
-from configs.main_configs import MainSettings
+from configs import MainSettings
 
-config = MainSettings()
 logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+main_settings = MainSettings()
 
 
 class EmailSender(Logger):
@@ -13,7 +14,7 @@ class EmailSender(Logger):
     color = Logger.YELLOW
 
     def __init__(self):
-        self.url = MainSettings().N8N_WEBHOOK_URL
+        self.url = main_settings.N8N_WEBHOOK_URL
         self.log("Initialized EmailSender")
 
     def send_to_n8n(self, data):
