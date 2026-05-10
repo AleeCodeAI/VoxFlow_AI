@@ -6,6 +6,11 @@
 [![Vite](https://img.shields.io/badge/Vite-7.2.5-646cff.svg)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4+-38bdf8.svg)](https://tailwindcss.com/)
 [![OpenAI Whisper](https://img.shields.io/badge/OpenAI_Whisper-20250625-orange.svg)](https://github.com/openai/whisper)
+[![n8n](https://img.shields.io/badge/n8n-Workflow_Automation-red.svg)](https://n8n.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-316192.svg)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-Cache-DC382D.svg)](https://redis.io/)
+[![Langfuse](https://img.shields.io/badge/Langfuse-LLM_Observability-purple.svg)](https://langfuse.com/)
+[![OpenRouter](https://img.shields.io/badge/OpenRouter-LLM_API-black.svg)](https://openrouter.ai/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A powerful, AI-driven audio processing application that transcribes audio files, preprocesses transcriptions using advanced language models, and provides additional tools for text manipulation, translation, and communication. This project stands out due to its comprehensive AI engineering approach, featuring a robust FastAPI backend, a modern React frontend, integrated Langfuse observability, and thorough evaluations, showcasing diverse and complete AI engineering skillsets. Built with a modern web frontend and a robust Python backend.
@@ -42,11 +47,11 @@ This project marks a significant milestone for me as it features a clean, produc
 - 📊 **Data Persistence**: Store transcriptions and preprocessing results in JSON Lines format
 - 🛠️ **Extensible Tools**: Modular architecture for adding new processing tools
 
-## Demo
+# Demo
 
 Check out the live demo video to see VoxFlow AI in action:
 
-[![Demo Video](https://img.shields.io/badge/Demo-Video-red.svg)](https://drive.google.com/file/d/101zJIK-EhDIe9sjDr-CCmYooAwVULH1Y/view?usp=sharing)
+[![Demo Video](https://img.shields.io/badge/Demo-Video-red.svg)](https://drive.google.com/file/d/1d_op75ScwyPdvR-QpHw3aOh3T70v_Hm8/view?usp=sharing)
 
 *Click the badge above to watch the demonstration.*
 
@@ -58,6 +63,7 @@ Check out the live demo video to see VoxFlow AI in action:
 - **OpenRouter API**: Integration with GPT models via OpenRouter
 - **OpenAI Models**: Excellent OpenAI Models
 - **DeepSeek Models**: Alternative LLM for preprocessing
+- **Gemini Models**: Alternative LLM for preprocessing
 - **Pydub**: Audio file manipulation
 - **Pydantic**: Data validation and serialization
 - **Uvicorn**: ASGI server for FastAPI
@@ -71,13 +77,39 @@ Check out the live demo video to see VoxFlow AI in action:
 
 ### Additional Libraries
 - **Deep Translator**: For language translation
-- **PDFKit & xhtml2pdf**: PDF generation capabilities
 - **Requests**: HTTP library for API calls
-- **Streamlit**: (Included for potential future UI expansions)
 
-### Integration Tools
-- **n8n**: Workflow automation platform used for email sending. I leveraged n8n with custom code to simplify the email functionality, allowing easy integration with various email providers. Users can create their own n8n workflows and connect them via webhooks - there are plenty of YouTube tutorials on setting up n8n workflows for email automation.
-- **Langfuse**: Open-source LLM observability platform for monitoring and debugging AI components, tracking model calls, performance, and costs.
+
+## Backend Tools and Services
+
+### FastAPI
+FastAPI is chosen for this project due to its high performance and ease of use, making it ideal for AI applications. It allows for rapid development of APIs with automatic generation of interactive documentation. FastAPI's asynchronous capabilities enable efficient handling of multiple requests, which is crucial for applications that require real-time processing, such as audio transcription.
+
+### Langfuse
+Langfuse is integrated for observability, providing insights into model performance, tracking API calls, and monitoring costs. This integration ensures that we can maintain and optimize our AI components effectively.
+
+### Redis
+Redis is integrated specifically for managing transcriptions. Since we utilize a local Whisper model for transcription, which is resource-intensive, Redis helps cache results and improve response times. However, we do not use Redis for preprocessing, despite its token consumption, because our preprocessing feature allows for multiple variations, making caching less beneficial.
+
+### n8n
+n8n is employed for workflow automation, particularly for email functionalities. It simplifies the integration of various services, allowing users to create custom workflows for sending processed audio results via email.
+- **NOTE:** You will have a json file of the n8n workflow in project root. Just import that in your n8n and setup credentials.
+
+### PostgreSQL
+PostgreSQL is chosen for its robustness and reliability as a relational database. It supports complex queries and transactions, making it suitable for storing structured data such as transcriptions and user interactions. Its scalability ensures that the application can handle growing amounts of data efficiently.
+
+## Frontend Overview
+
+The frontend consists of a home page and a tool page, providing a user-friendly interface for audio processing. We have implemented session-based history, allowing users to navigate through their processing history similar to a typical chatbot chat history without losing data.
+
+### Audio Processing Methods
+There are two ways to work with audio files:
+
+1. **Manual Processing**: Users upload an audio file, which is transcribed and displayed in an editable box. After reviewing, users can click to process the transcription with AI, resulting in a preprocessed version.
+
+2. **Automatic Processing**: In this mode, the audio file is transcribed and immediately sent for preprocessing, returning the final result directly to the user.
+
+Additionally, users can perform multiple preprocessings, generating different versions of the output. There is also a feature to download all versions of the preprocessings in a Markdown file format.
 
 ## Langfuse Integration for Observability
 
@@ -117,6 +149,16 @@ The VoxFlow AI project includes a comprehensive evaluation pipeline to ensure ro
 
 For detailed evaluation methodology, metrics, results, and file structures, refer to `backend/evaluations/about_evaluations.md`.
 
+## Dockerization
+
+Dockerization is essential for modern software development as it ensures consistent environments across different stages of development, testing, and production. By containerizing applications, we eliminate "works on my machine" issues, simplify deployment, and improve scalability. Containers provide isolation, making it easier to manage dependencies and run multiple services without conflicts.
+
+This project relies on multiple external services including n8n for workflow automation, Langfuse for LLM observability, Redis for caching transcriptions, and PostgreSQL for data persistence. To manage these dependencies efficiently, I've created a global shared infrastructure using Docker Compose, setting up a dedicated network that these services share. The VoxFlow AI application connects to this network and utilizes these services seamlessly.
+
+The setup of these external services is not included in this repository to keep the focus on the core application logic. However, configuring such a shared infrastructure is straightforward— a basic tutorial on Docker Compose can guide users to build their own. Alternatively, you can check my GitHub profile for another repository that demonstrates a complete setup of similar shared services.
+
+For those new to Docker, I've documented my learning journey in `docker_learning_documentations.md`. This file contains everything I learned during my first three days of using Docker, including key concepts, commands, and best practices. It's particularly helpful for beginners transitioning from traditional development environments to containerized workflows.
+
 ## Architecture
 
 ![Architecture](Architecture.png)
@@ -125,69 +167,210 @@ For detailed evaluation methodology, metrics, results, and file structures, refe
 
 ```
 audio_preprocessor/
-├── README.md
 ├── backend/
-│   ├── main.py                 # FastAPI application entry point
-│   ├── pyproject.toml          # Python project configuration and dependencies
-│   ├── color.py                # Custom logging utilities
-│   ├── __pycache__/            # Python bytecode cache
+│   ├── api/
+│   │   ├── documentations.md
+│   │   ├── main.py
+│   │   └── routes/
+│   │       ├── preprocess_endpoints.py
+│   │       ├── retrieval_endpoints.py
+│   │       ├── tools_endpoints.py
+│   │       ├── transcriber_endpoints.py
+│   │       └── workflow_endpoints.py
+│   │
+│   ├── configs/
+│   │   ├── __init__.py
+│   │   ├── main_configs.py
+│   │   ├── prompts_configs.py
+│   │   └── transcriber_configs.py
+│   │
 │   ├── core/
-│   │   ├── color.py            # Core logging utilities
-│   │   ├── preprocessor.py     # AI-powered text preprocessing logic
-│   │   ├── prompts.py          # System and user prompts for LLM interactions
-│   │   ├── transcriber.py      # Audio transcription using Whisper
-│   │   └── __pycache__/        # Python bytecode cache
+│   │   ├── __init__.py
+│   │   ├── preprocessor/
+│   │   │   ├── preprocessor.py
+│   │   │   ├── preprocessor_llm.py
+│   │   │   ├── preprocessor_observability.py
+│   │   │   └── preprocessor_repository.py
+│   │   │
+│   │   └── transcriber/
+│   │       ├── audio_processor.py
+│   │       ├── observability.py
+│   │       ├── transcriber.py
+│   │       ├── transcription_cache.py
+│   │       └── transcription_repository.py
+│   │
 │   ├── databases/
-│   │   ├── preprocessings.jsonl # Storage for preprocessed results
-│   │   └── transcriptions.jsonl  # Storage for transcription results
+│   │   ├── database.py
+│   │   ├── models.py
+│   │   ├── preprocessor_repository.py
+│   │   ├── transcriber_repository.py
+│   │   ├── preprocessor_eval_query_repository.py
+│   │   └── transcriber_eval_query_repository.py
+│   │
 │   ├── evaluations/
-│   │   ├── about_evaluations.md       # This document
-│   │   ├── preprocessor\              # Results for the preprocessor module
-│   │   │   ├── ai_as_judge.py         # AI-as-Judge evaluation script
-│   │   │   ├── color.py               # Terminal output styling utility
-│   │   │   ├── functional_correctness.py
-│   │   │   ├── functional_evaluation_summary.md
-│   │   │   ├── functional_executions.json
-│   │   │   ├── judge_evaluation_summary.md
-│   │   │   └── judge_executions.jsonl
-│   │   ├── test_data\                 # Input data used for all tests
-│   │   │   ├── preprocessor\
-│   │   │   │   ├── preprocessings.jsonl
-│   │   │   │   └── transcriptions_data.jsonl
-│   │   │   └── transcriber\
-│   │   │       ├── invalids\          # Files for negative testing (test9.pdf, test10.docx)
-│   │   │       └── valids\            # Valid audio files (test1.m4a - test8.mp3)
-│   │   └── transcriber\               # Results for the transcriber module
-│   │       ├── color.py
-│   │       ├── functional_correctness.py
-│   │       ├── functional_evaluation_results.jsonl
-│   │       ├── functional_evaluation_summary.md
-│   │       ├── lexical_evaluation_summary.md
-│   │       ├── lexical_evaluations_result.jsonl
-│   │       ├── lexical_similarity.py
-│   │       ├── transcriptions_data.jsonl
-│   │       └── transcriptions_reference_data.jsonl
-│   └── tools/
-│       ├── color.py            # Tool-specific logging utilities
-│       ├── email_sender.py     # Email sending functionality
-│       ├── text_extracter.py   # Text extraction using AI
-│       ├── translator.py       # Language translation tool
-│       └── __pycache__/        # Python bytecode cache
-└── frontend/
-    ├── eslint.config.js        # ESLint configuration
-    ├── index.html              # Main HTML file
-    ├── package.json            # Node.js project configuration
-    ├── package-lock.json       # Node.js lockfile
-    ├── postcss.config.js       # PostCSS configuration
-    ├── tailwind.config.js      # Tailwind CSS configuration
-    ├── vite.config.js          # Vite build configuration
-    ├── public/                 # Static assets
-    └── src/
-        ├── App.css             # Application styles
-        ├── App.jsx             # Main React application component
-        ├── index.css           # Global styles
-        ├── main.jsx            # React application entry point
-        └── assets/             # Application assets
+│   │   ├── about_evaluations.md
+│   │   ├── runner.py
+│   │   │
+│   │   ├── preprocessor/
+│   │   │   ├── __init__.py
+│   │   │   ├── evaluation_databases/
+│   │   │   │   ├── functional_executions.json
+│   │   │   │   └── judge_executions.jsonl
+│   │   │   │
+│   │   │   ├── evaluation_results/
+│   │   │   │   ├── functional_evaluation_summary.md
+│   │   │   │   └── judge_evaluation_summary.md
+│   │   │   │
+│   │   │   └── evaluation_scripts/
+│   │   │       ├── ai_judge/
+│   │   │       │   ├── ai_judge.py
+│   │   │       │   ├── evaluation_client.py
+│   │   │       │   ├── prompt_builder.py
+│   │   │       │   ├── reporter.py
+│   │   │       │   ├── storage.py
+│   │   │       │   └── __init__.py
+│   │   │       │
+│   │   │       └── functional_correctness/
+│   │   │           ├── functional_correctness.py
+│   │   │           ├── metrics.py
+│   │   │           ├── reporter.py
+│   │   │           ├── runner.py
+│   │   │           ├── storage.py
+│   │   │           ├── verifier.py
+│   │   │           ├── about_evals.md
+│   │   │           └── __init__.py
+│   │   │
+│   │   └── transcriber/
+│   │       ├── __init__.py
+│   │       ├── evaluation_databases/
+│   │       │   ├── functional_evaluation_results.jsonl
+│   │       │   ├── lexical_evaluations_result.jsonl
+│   │       │   ├── transcriptions_data.jsonl
+│   │       │   └── transcriptions_reference_data.jsonl
+│   │       │
+│   │       ├── evaluation_results/
+│   │       │   ├── functional_evaluation_summary.md
+│   │       │   └── lexical_evaluation_summary.md
+│   │       │
+│   │       └── evaluation_scripts/
+│   │           ├── functional_correctness/
+│   │           │   ├── functional_correctness.py
+│   │           │   ├── metrics.py
+│   │           │   └── about_evals.md
+│   │           │
+│   │           └── lexical_similarity/
+│   │               ├── lexical_similarity.py
+│   │               ├── metrics.py
+│   │               ├── normalizer.py
+│   │               ├── reporter.py
+│   │               └── about_evals.md
+│   │
+│   ├── test_data/
+│   │   ├── preprocessor/
+│   │   │   ├── preprocessings.jsonl
+│   │   │   └── transcriptions_data.jsonl
+│   │   │
+│   │   └── transcriber/
+│   │       ├── valids/
+│   │       │   ├── test1.m4a
+│   │       │   ├── test2.mp3
+│   │       │   ├── test3.wav
+│   │       │   ├── test4.flac
+│   │       │   ├── test5.opus
+│   │       │   ├── test6.aac
+│   │       │   ├── test7.wma
+│   │       │   └── test8.mp3
+│   │       │
+│   │       └── invalids/
+│   │           ├── test9.pdf
+│   │           └── test10.docx
+│   │
+│   ├── prompts/
+│   │   ├── __init__.py
+│   │   ├── judge_prompts.py
+│   │   ├── preprocessor_prompts.py
+│   │   └── text_extractor_prompts.py
+│   │
+│   ├── pydantic_schemas/
+│   │   ├── __init__.py
+│   │   ├── prompts.py
+│   │   ├── preprocessor_schemas.py
+│   │   ├── transcriber_schemas.py
+│   │   └── tools_schemas/
+│   │
+│   ├── tests/
+│   │   ├── test_api/
+│   │   │   ├── test_main.py
+│   │   │   ├── test_preprocessor_endpoints.py
+│   │   │   ├── test_retrieval_endpoints.py
+│   │   │   └── test_transcriber_endpoints.py
+│   │   │
+│   │   ├── test_databases/
+│   │   │   ├── conftest.py
+│   │   │   ├── test_database.py
+│   │   │   ├── test_db_preprocessor_repository.py
+│   │   │   └── test_transcriber_repository.py
+│   │   │
+│   │   ├── test_preprocessor/
+│   │   │   ├── conftest.py
+│   │   │   ├── test_preprocessor.py
+│   │   │   ├── test_preprocessor_observability.py
+│   │   │   └── test_preprocessor_repository.py
+│   │   │
+│   │   └── test_transcriber/
+│   │       ├── test_audio_processor.py
+│   │       ├── test_observability.py
+│   │       ├── test_repository.py
+│   │       └── test_transcriber.py
+│   │
+│   ├── tools/
+│   │   ├── email_sender.py
+│   │   ├── text_extractor.py
+│   │   ├── translator.py
+│   │   └── __init__.py
+│   │
+│   ├── utils/
+│   │   └── color.py
+│   │
+│   ├── Dockerfile
+│   ├── pyproject.toml
+│   ├── uv.lock
+│   ├── .dockerignore
+│   ├── .env
+│   ├── .env.example
+│   └── .python-version
+│
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── HomePage.jsx
+│   │   ├── main.jsx
+│   │   ├── index.css
+│   │   ├── App.css
+│   │   └── assets/
+│   │
+│   ├── public/
+│   ├── dist/
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   ├── eslint.config.js
+│   ├── index.html
+│   └── .dockerignore
+│
+├── docker-compose.yml
+├── docker_learning_documentations.md
+├── init-db.sh
+├── README.md
+├── .gitignore
+├── .env
+├── .env.example
+├── Architecture.png
+└── screenshots_of_projects/
 ```
 
 ## Installation
@@ -219,18 +402,25 @@ audio_preprocessor/
 4. **Set up environment variables:**
    Create a `.env` file in the backend directory with:
    ```
-   OPENROUTER_API_KEY=your_openrouter_api_key
-   OPENROUTER_URL=https://openrouter.ai/api/v1
-   GPT_MODEL=gpt-4  # or your preferred model
-   DEEPSEEK_MODEL=deepseek-chat
-   LANGFUSE_SECRET_KEY="sk-your-key"
-   LANGFUSE_PUBLIC_KEY="pk-your-key"
-   LANGFUSE_HOST="localhost endpoint"  # For self-hosted Langfuse; for cloud deployments, use LANGFUSE_BASE_URL instead, e.g., https://cloud.langfuse.com
+   OPENROUTER_API_KEY=""
+   LANGFUSE_SECRET_KEY=""
+   LANGFUSE_PUBLIC_KEY=""
+
+   OPENROUTER_URL=""
+   LANGFUSE_HOST=""
+   POSTGRESQL_URL=""
+   N8N_WEBHOOK_URL=""
+
+   POSTGRES_PASSWORD=""
+   POSTGRES_USER=
+
+   LANGFUSE_PUBLIC_KEY_DOCKER=""
+   LANGFUSE_SECRET_KEY_DOCKER=""
+
    ```
 
-   **Note:** For the email functionality, you'll need to set up your own n8n workflow. The code in `backend/tools/email_sender.py` uses a hardcoded webhook URL that only works for my setup. Update the `self.url` in the `EmailSender` class to point to your own n8n webhook. There are many YouTube tutorials on creating n8n workflows for email automation.
-
    **Langfuse Configuration:** If using Langfuse Cloud (hosted service), replace `LANGFUSE_HOST` with `LANGFUSE_BASE_URL` and set it to the appropriate cloud URL (e.g., `https://cloud.langfuse.com` for EU or `https://us.cloud.langfuse.com` for US). Self-hosted deployments require `LANGFUSE_HOST` pointing to your local or custom endpoint.
+   - also if you want only your docker n8n to be used you can setup one LANGFUSE PUBLIC KEY and LANGFUSE SECRET KEY, in my case I have separate langfuse keys for local development and docker
 
 5. **Run the backend:**
    ```bash
@@ -269,15 +459,6 @@ audio_preprocessor/
 6. **Preprocess** the transcription for cleaning
 7. **Use additional tools** like translation or email sending
 
-### API Endpoints
-
-The backend provides the following main endpoints:
-
-- `POST /transcribe`: Transcribe uploaded audio files
-- `POST /preprocess`: Preprocess transcription text
-- `POST /tools/translate`: Translate text to another language
-- `POST /tools/extract`: Extract key information from text
-- `POST /tools/email`: Send processed data via email
 
 ## Contributing
 
@@ -310,6 +491,8 @@ Please read the contributing guidelines (when available) before making contribut
 ![Screenshot 8](screenshots_of_projects/Screenshot%202026-01-14%20195449.png)
 ![Screenshot 9](screenshots_of_projects/Screenshot%202026-01-14%20195609.png)
 ![Screenshot 10](screenshots_of_projects/Screenshot%202026-01-14%20195620.png)
+![Screenshot 11](screenshots_of_projects/Screenshot_2026-05-14_111805.png)
+![Screenshot 12](screenshots_of_projects/Screenshot_2026-05-14_111832.png)
 
 ---
 
