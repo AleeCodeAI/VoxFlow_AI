@@ -1,7 +1,3 @@
-Here’s a clean, focused markdown documentation summary for the **preprocessor functional evaluation**:
-
----
-
 # Preprocessor Functional Evaluation
 
 ## Overview
